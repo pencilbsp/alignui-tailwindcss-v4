@@ -607,11 +607,11 @@
     --color-static-white: var(--static-white);
 
     --color-bg-strong-950: var(--bg-strong-950);
-    --color-bg-surface-800: var(--bg-strong-800);
-    --color-bg-sub-300: var(--bg-strong-300);
-    --color-bg-soft-200: var(--bg-strong-200);
-    --color-bg-weak-50: var(--bg-strong-50);
-    --color-bg-white-0: var(--bg-strong-0);
+    --color-bg-surface-800: var(--bg-surface-800);
+    --color-bg-sub-300: var(--bg-sub-300);
+    --color-bg-soft-200: var(--bg-soft-200);
+    --color-bg-weak-50: var(--bg-weak-50);
+    --color-bg-white-0: var(--bg-white-0);
 
     --color-text-strong-950: var(--text-strong-950);
     --color-text-sub-600: var(--text-sub-600);
