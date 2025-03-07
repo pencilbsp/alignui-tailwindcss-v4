@@ -10,11 +10,10 @@
         "format": "prettier --write '**/*.{ts,tsx,css,json,mjs}'"
     },
     "dependencies": {
-        "@hugeicons/core-free-icons": "^1.0.11",
-        "@hugeicons/react": "^1.0.4",
-        "@radix-ui/react-accordion": "^1.2.3",
+        "@heroicons/react": "^2.2.0",
         "@radix-ui/react-slot": "^1.1.2",
         "clsx": "^2.1.1",
+        "motion": "^12.4.10",
         "next": "15.2.1",
         "next-themes": "^0.4.4",
         "react": "^19.0.0",
