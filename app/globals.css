@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
-@import "./texts.css" layer(theme);
-@import "./colors.css" layer(theme);
-@import "./shadows.css" layer(theme);
+@import "./styles/texts.css" layer(theme);
+@import "./styles/colors.css" layer(theme);
+@import "./styles/shadows.css" layer(theme);
 
 @theme inline {
     --radius-10: 0.625rem;
