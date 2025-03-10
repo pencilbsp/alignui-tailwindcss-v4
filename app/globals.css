@@ -33,3 +33,16 @@
         }
     }
 }
+
+@utility slide-* {
+    --slide-count: --value(integer);
+}
+
+@utility slide-gap-* {
+    gap: calc(var(--spacing) * --value(integer));
+    --slide-gap: calc(var(--spacing) * (var(--slide-count) - 1) * --value(integer));
+}
+
+@utility slide-basis-* {
+    flex-basis: calc((100% - var(--slide-gap)) * --value(ratio));
+}
