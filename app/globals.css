@@ -44,5 +44,5 @@
 }
 
 @utility slide-basis-* {
-    flex-basis: calc((100% - var(--slide-gap)) * --value(ratio));
+    flex-basis: calc((100% - var(--slide-gap, 0px)) * --value(ratio));
 }
