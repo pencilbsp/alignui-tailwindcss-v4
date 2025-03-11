@@ -1,10 +1,28 @@
 "use client";
 
 import Image from "next/image";
-import { useState, useRef, useCallback, useEffect } from "react";
 import { ChevronLeftIcon, ChevronRightIcon } from "@heroicons/react/24/outline";
+import { PointerEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 const items = [
+    {
+        image: "/mydramalist/qYyBQ8_4f.jpg",
+        title: "Justice in the Dark",
+        status: "completed",
+        update: "Cập nhật tập 12",
+    },
+    {
+        image: "/mydramalist/6BgW0_4f.jpg",
+        title: "Falling into Your Smile",
+        status: "completed",
+        update: "Cập nhật tập 12",
+    },
+    {
+        image: "/mydramalist/XdvYLg_4f.jpg",
+        title: "The Legend of Heroes",
+        status: "completed",
+        update: "Cập nhật tập 12",
+    },
     {
         image: "/mydramalist/73dALN_4f.jpg",
         title: "The Best Thing",
@@ -61,176 +79,253 @@ const items = [
     },
 ];
 
-const Slider = () => {
+const damping = 0.3;
+
+type SwipeOptions = { speed?: number; animated?: boolean };
+
+type Props = {
+    loop?: {
+        enabled: boolean;
+        infinity?: boolean;
+    };
+    speed?: number;
+    freeMode?: {
+        sticky?: boolean;
+        enabled: boolean;
+        momentum?: boolean;
+        momentumRatio?: number;
+        momentumBounce?: boolean;
+        minimumVelocity?: number;
+        momentumBounceRatio?: number;
+        momentumVelocityRatio?: number;
+    };
+};
+
+const Slider = ({
+    speed = 250,
+    loop = { enabled: false, infinity: false },
+    freeMode = {
+        sticky: false,
+        enabled: false,
+        momentum: true,
+        momentumRatio: 1,
+        momentumBounce: true,
+        minimumVelocity: 0.02,
+        momentumBounceRatio: 1,
+        momentumVelocityRatio: 1,
+    },
+}: Props) => {
     const [index, setIndex] = useState(0);
-    const [slidePerView, setSlidePerView] = useState<number | null>(null);
+    const [slideCount, setSlideCount] = useState<number | null>(null);
+
+    const containerRef = useRef<HTMLDivElement>(null);
+
+    const indexRef = useRef(index);
 
     const gapRef = useRef(0);
     const offsetRef = useRef(0);
-    const currentIndexRef = useRef(index);
-    const itemWidthRef = useRef<number | null>(null);
-    const containerRef = useRef<HTMLDivElement>(null);
+    const slideWidthRef = useRef<number | null>(null);
 
     // Refs cho xử lý pointer events
-    const dampingFactor = 0.3;
     const dragStartXRef = useRef(0);
     const dragOffsetRef = useRef(0);
     const dragStartTimeRef = useRef(0);
     const isDraggingRef = useRef(false);
-    const animationFrameRef = useRef<number | null>(null);
 
-    const getEffectiveWidth = () => (itemWidthRef.current ? itemWidthRef.current + gapRef.current : 0);
+    const swipe = useCallback(
+        (offset?: number | SwipeOptions, _options?: SwipeOptions) => {
+            if (!containerRef.current || !slideWidthRef.current) return;
 
-    // Hàm updateSlider nhận thêm tham số immediate
-    const updateSlider = useCallback((immediate = false) => {
+            let options: SwipeOptions = _options || {};
+            offsetRef.current = -indexRef.current * (slideWidthRef.current + gapRef.current);
+
+            if (typeof offset === "object") {
+                options = offset;
+                offset = offsetRef.current;
+            } else if (typeof offset === "number") {
+                offsetRef.current = offset;
+            } else {
+                offset = offsetRef.current;
+            }
+
+            const { animated = true, speed: s = speed } = options;
+
+            containerRef.current.style.transition = animated ? `transform ${s}ms` : "none";
+            containerRef.current.style.transform = `translate3d(${offset}px, 0, 0)`;
+        },
+        [speed],
+    );
+
+    const computedSlide = useCallback(() => {
         if (!containerRef.current?.parentNode) return;
-        const parentWidth = (containerRef.current.parentNode as HTMLElement).getBoundingClientRect().width;
-        const styles = getComputedStyle(containerRef.current);
-        const gap = parseFloat(styles.gap) || 0;
-        const slideCount = parseFloat(styles.getPropertyValue("--slide-count")) || 1;
 
-        gapRef.current = gap;
-        itemWidthRef.current = (parentWidth - gap * (slideCount - 1)) / slideCount;
-        setSlidePerView(slideCount);
+        const containerStyles = getComputedStyle(containerRef.current as Element);
+        const parentWidth = (containerRef.current.parentNode as Element).getBoundingClientRect().width;
 
-        const currentIndex = currentIndexRef.current;
+        gapRef.current = parseFloat(containerStyles.gap) || 0;
+        const slideCount = parseFloat(containerStyles.getPropertyValue("--slide-count")) || 1;
+        setSlideCount(slideCount);
+
+        slideWidthRef.current = (parentWidth - gapRef.current * (slideCount - 1)) / slideCount;
+
+        swipe({ animated: false });
+
         const maxIndex = Math.max(items.length - slideCount, 0);
-        if (currentIndex > maxIndex) {
-            setIndex(maxIndex);
-            currentIndexRef.current = maxIndex;
-            return;
-        }
+        if (indexRef.current > maxIndex) setIndex(maxIndex);
+    }, [swipe]);
 
-        const effectiveWidth = getEffectiveWidth();
-        offsetRef.current = -currentIndex * effectiveWidth;
-        if (containerRef.current) {
-            containerRef.current.style.transition = immediate ? "none" : "transform 0.3s ease-in-out";
-            containerRef.current.style.transform = `translate3d(${offsetRef.current}px, 0, 0)`;
-        }
-    }, []);
-
-    useEffect(() => {
-        currentIndexRef.current = index;
-        updateSlider();
-    }, [index, updateSlider]);
-
-    const handleNext = useCallback(() => {
-        if (slidePerView === null) return;
-        if (index < items.length - slidePerView) {
-            setIndex((prev) => prev + 1);
-        }
-    }, [index, slidePerView]);
+    const canPrev = useMemo(() => loop.enabled || index > 0, [index, loop]);
+    const canNext = loop.enabled || index < items.length - (slideCount ?? 0);
 
     const handlePrev = useCallback(() => {
-        if (index > 0) {
+        if (slideCount === null) return;
+
+        if (loop.enabled) {
+            const maxIndex = Math.max(items.length - slideCount, 0);
+            return setIndex(index === 0 ? maxIndex : index - 1);
+        }
+
+        if (index !== 0) {
             setIndex((prev) => prev - 1);
         }
-    }, [index]);
+    }, [index, slideCount, loop]);
 
-    const computedCanPrev = index > 0;
-    const computedCanNext = slidePerView !== null && index < items.length - slidePerView;
+    const handleNext = useCallback(() => {
+        if (slideCount === null) return;
 
-    const updatePointerMove = () => {
-        const effectiveWidth = getEffectiveWidth();
-        if (!effectiveWidth) return;
+        const canNext = index < items.length - slideCount;
 
-        const maxIndex = Math.max(items.length - (slidePerView || 1), 0);
-        const minOffset = -(maxIndex * effectiveWidth);
-        let newOffset = offsetRef.current + dragOffsetRef.current;
-
-        // Áp dụng damping nếu kéo vượt quá giới hạn
-        if (newOffset > 0) {
-            newOffset = newOffset * dampingFactor;
-        } else if (newOffset < minOffset) {
-            newOffset = minOffset + (newOffset - minOffset) * dampingFactor;
+        if (loop.enabled) {
+            return setIndex(canNext ? index + 1 : 0);
         }
-        if (containerRef.current) {
-            containerRef.current.style.transform = `translate3d(${newOffset}px, 0, 0)`;
-        }
-    };
 
-    const handlePointerDown = (e: React.PointerEvent) => {
+        if (canNext) {
+            setIndex((prev) => prev + 1);
+        }
+    }, [index, slideCount, loop]);
+
+    const handlePointerDown = useCallback((event: PointerEvent<HTMLDivElement>) => {
+        if (isDraggingRef.current) return;
+
         isDraggingRef.current = true;
-        dragStartXRef.current = e.clientX;
+        dragStartXRef.current = event.clientX;
         dragStartTimeRef.current = performance.now();
-        if (containerRef.current) {
-            containerRef.current.style.transition = "none";
-        }
+
         // Capture pointer để nhận event ngay cả khi rời khỏi phần tử
-        (e.target as Element).setPointerCapture(e.pointerId);
-    };
+        event.currentTarget.setPointerCapture(event.pointerId);
+    }, []);
 
-    const handlePointerMove = (e: React.PointerEvent) => {
-        if (!isDraggingRef.current) return;
-        const delta = e.clientX - dragStartXRef.current;
-        dragOffsetRef.current = delta;
-        if (animationFrameRef.current === null) {
-            animationFrameRef.current = requestAnimationFrame(() => {
-                updatePointerMove();
-                animationFrameRef.current = null;
-            });
-        }
-    };
+    const handlePointerMove = useCallback(
+        (event: PointerEvent<HTMLDivElement>) => {
+            if (!isDraggingRef.current || !containerRef.current || !slideWidthRef.current) return;
 
-    const handlePointerUp = () => {
-        if (!isDraggingRef.current) return;
-        isDraggingRef.current = false;
-        if (containerRef.current) {
-            containerRef.current.style.transition = "transform 0.3s ease-in-out";
-        }
-        const effectiveWidth = getEffectiveWidth();
-        if (!effectiveWidth) return;
+            dragOffsetRef.current = event.clientX - dragStartXRef.current;
 
-        const dt = performance.now() - dragStartTimeRef.current;
-        const velocity = dt > 0 ? dragOffsetRef.current / dt : 0;
-        let momentum = velocity * 200;
-        momentum = Math.max(Math.min(momentum, effectiveWidth * 2), -effectiveWidth * 2);
+            let dragOffset = dragOffsetRef.current;
 
-        let newOffset = offsetRef.current + dragOffsetRef.current + momentum;
-        const maxIndex = Math.max(items.length - (slidePerView || 1), 0);
-        const minOffset = -(maxIndex * effectiveWidth);
-        if (newOffset > 0) {
-            newOffset = 0;
-        } else if (newOffset < minOffset) {
-            newOffset = minOffset;
-        }
-        const slideChange = Math.round((offsetRef.current - newOffset) / effectiveWidth);
-        let newIndex = index + slideChange;
-        newIndex = Math.max(0, Math.min(newIndex, maxIndex));
+            // Tính toán maxIndex dựa trên số lượng slide hiển thị
+            const maxIndex = items.length - (slideCount ?? 1);
 
-        if (newIndex === index) {
-            updateSlider();
-        } else {
-            setIndex(newIndex);
-        }
-        dragOffsetRef.current = 0;
-    };
+            // Nếu đang ở slide đầu và kéo về bên phải (dragOffset > 0)
+            if (indexRef.current === 0 && dragOffset > 0) {
+                // Áp dụng damping (giảm độ lệch), bạn có thể điều chỉnh hệ số damping
+                dragOffset = dragOffset * damping;
+            }
+            // Nếu đang ở slide cuối và kéo về bên trái (dragOffset < 0)
+            if (indexRef.current === maxIndex && dragOffset < 0) {
+                dragOffset = dragOffset * damping;
+            }
 
-    // Xử lý onPointerCancel: tương tự như onPointerUp
-    const handlePointerCancel = () => {
-        if (!isDraggingRef.current) return;
-        isDraggingRef.current = false;
-        if (animationFrameRef.current !== null) {
-            cancelAnimationFrame(animationFrameRef.current);
-            animationFrameRef.current = null;
-        }
-        if (containerRef.current) {
-            containerRef.current.style.transition = "transform 0.3s ease-in-out";
-        }
-        updateSlider();
-        dragOffsetRef.current = 0;
-    };
+            const slideOffset = -indexRef.current * (slideWidthRef.current + gapRef.current);
 
-    // Sử dụng ResizeObserver: gọi updateSlider với immediate = true
+            swipe(slideOffset + dragOffset, { animated: false });
+        },
+        [slideCount, swipe],
+    );
+
+    const handlePointerUp = useCallback(
+        (event: PointerEvent<HTMLDivElement>) => {
+            // Nếu không đang trong trạng thái kéo hoặc chưa có thông tin về chiều rộng slide, thì không xử lý gì
+            if (!isDraggingRef.current || slideWidthRef.current === null) return;
+
+            // Kết thúc trạng thái kéo
+            isDraggingRef.current = false;
+            // Giải phóng pointer capture để các sự kiện pointer sau này được xử lý đúng
+            event.currentTarget.releasePointerCapture(event.pointerId);
+
+            // Xác định ngưỡng kéo: ở đây là 25% của chiều rộng slide,
+            // nghĩa là nếu kéo vượt quá ngưỡng này (hoặc tốc độ kéo cao) thì mới chuyển slide
+            const threshold = slideWidthRef.current * 0.25;
+
+            // Tính khoảng thời gian kể từ khi bắt đầu kéo đến thời điểm thả
+            const timeDiff = performance.now() - dragStartTimeRef.current;
+            // Tính tốc độ kéo (velocity) dựa trên khoảng cách kéo chia cho thời gian kéo
+            // Sử dụng Math.abs để lấy giá trị tuyệt đối của drag offset (không quan tâm hướng)
+            const velocity = timeDiff > 0 ? Math.abs(dragOffsetRef.current / timeDiff) : 0;
+
+            // Nếu tốc độ kéo lớn hơn 0.25 (đơn vị tùy chọn) hoặc khoảng cách kéo vượt qua ngưỡng,
+            // thì thực hiện tính toán chuyển slide
+            if (velocity > 0.25 || Math.abs(dragOffsetRef.current) > threshold) {
+                // Tính chiều rộng của một item slide bao gồm cả khoảng cách (gap) giữa các slide
+                const itemWidth = slideWidthRef.current + gapRef.current;
+
+                // Tính số slide cần chuyển dựa trên tổng khoảng cách kéo (drag offset)
+                const delta = Math.round(dragOffsetRef.current / itemWidth);
+
+                if (delta !== 0) {
+                    // Tính chỉ số slide mới
+                    // Lưu ý: khi kéo sang phải (dragOffset > 0) thì delta dương và ta muốn giảm index,
+                    // ngược lại khi kéo sang trái (dragOffset âm) thì delta âm, nên newIndex tăng lên
+                    let newIndex = index - delta;
+
+                    // Tính giá trị index tối đa có thể (maxIndex) dựa trên số lượng slide hiện có
+                    // Nếu hiển thị nhiều slide cùng lúc, thì index tối đa là tổng số slide trừ đi số slide hiển thị
+                    const maxIndex = Math.max(items.length - (slideCount ?? 1), 0);
+                    // Giới hạn newIndex trong khoảng từ 0 đến maxIndex để tránh chuyển vượt ngoài phạm vi cho phép
+                    newIndex = Math.max(0, Math.min(newIndex, maxIndex));
+
+                    // Nếu chỉ số mới khác với chỉ số hiện tại, cập nhật state để chuyển slide
+                    // Nếu bằng nhau, nghĩa là kéo không đủ để chuyển sang slide khác, nên gọi swipe() để snap về vị trí hiện tại
+                    if (newIndex !== index) {
+                        setIndex(newIndex);
+                    } else {
+                        swipe();
+                    }
+                } else {
+                    // Nếu kéo sang phải (positive) và có slide trước đó
+                    if (dragOffsetRef.current > 0 && index > 0) {
+                        setIndex((prev) => prev - 1);
+                    }
+                    // Nếu kéo sang trái (negative) và có slide tiếp theo
+                    else if (dragOffsetRef.current < 0 && index < items.length - (slideCount ?? 1)) {
+                        setIndex((prev) => prev + 1);
+                    } else {
+                        swipe(); // Nếu không đủ điều kiện chuyển slide, snap về vị trí hiện tại
+                    }
+                }
+            } else {
+                // Nếu khoảng cách kéo không vượt qua ngưỡng và tốc độ kéo thấp,
+                // thì không chuyển slide, chỉ cần snap về vị trí ban đầu
+                swipe();
+            }
+        },
+        [index, slideCount, swipe],
+    );
+
     useEffect(() => {
         if (containerRef.current?.parentNode) {
-            const resizeObserver = new ResizeObserver(() => {
-                updateSlider(true);
-            });
+            const resizeObserver = new ResizeObserver(computedSlide);
+
             resizeObserver.observe(containerRef.current.parentNode as Element);
+
             return () => resizeObserver.disconnect();
         }
-    }, [updateSlider]);
+    }, [computedSlide]);
+
+    useEffect(() => {
+        indexRef.current = index;
+        swipe();
+    }, [index, swipe]);
 
     return (
         <div className="flex justify-center">
@@ -241,22 +336,21 @@ const Slider = () => {
                         onPointerUp={handlePointerUp}
                         onPointerDown={handlePointerDown}
                         onPointerMove={handlePointerMove}
-                        onPointerCancel={handlePointerCancel}
-                        className="slide-gap-2 md:slide-gap-3 slide-3 md:slide-4 flex touch-pan-y select-none"
+                        // onPointerCancel={handlePointerCancel}
+                        className="slide-gap-2 slide-3 md:slide-4 flex touch-pan-y select-none"
                     >
-                        {items.map((item, idx) => (
+                        {items.map((item, _index) => (
                             <div
-                                key={idx}
+                                key={_index}
                                 className="slide-basis-1/3 md:slide-basis-1/4 aspect-[2/3] w-full flex-shrink-0"
                             >
                                 <Image
-                                    alt={item.title}
-                                    src={item.image}
                                     width={0}
                                     height={0}
                                     sizes="100vw"
+                                    alt={item.title}
+                                    src={item.image}
                                     className="pointer-events-none h-full w-full object-cover"
-                                    draggable={false}
                                 />
                             </div>
                         ))}
@@ -264,15 +358,17 @@ const Slider = () => {
                 </div>
                 <button
                     type="button"
-                    disabled={!computedCanPrev}
+                    disabled={!canPrev}
                     onClick={handlePrev}
-                    className="text-static-white absolute top-1/2 left-4 -translate-y-1/2 cursor-pointer disabled:opacity-50"
+                    className={
+                        "text-static-white absolute top-1/2 left-4 -translate-y-1/2 cursor-pointer disabled:opacity-50"
+                    }
                 >
                     <ChevronLeftIcon className="size-8 stroke-2" />
                 </button>
                 <button
                     type="button"
-                    disabled={!computedCanNext}
+                    disabled={!canNext}
                     onClick={handleNext}
                     className="text-static-white absolute top-1/2 right-4 -translate-y-1/2 cursor-pointer disabled:opacity-50"
                 >
