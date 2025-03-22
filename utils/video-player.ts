@@ -1,3 +1,5 @@
+import { Level } from "hls.js";
+
 const formatTime = (time: number) => {
     const minutes = Math.floor(time / 60);
     const seconds = Math.floor(time % 60);
@@ -67,4 +69,44 @@ const exitFullscreen = () => {
     return true;
 };
 
-export { requestFullscreen, exitFullscreen, formatTime };
+function formatBitrate(bitrate: number) {
+    if (bitrate >= 1000000) {
+        // Chuyển sang mbps
+        return (bitrate / 1000000).toFixed(2) + "Mbps";
+    } else if (bitrate >= 1000) {
+        // Chuyển sang kbps
+        return (bitrate / 1000).toFixed(0) + "kbps";
+    } else {
+        // Để ở dạng bps
+        return bitrate + "bps";
+    }
+}
+
+const getLevelResolution = (lavels: Level[]) => {
+    const seen = new Map<number, number[]>();
+    return lavels
+        .map((level, index) => {
+            const { width, height } = level;
+            const pixels = width > height ? height : width;
+
+            const indexes = seen.get(pixels);
+            if (indexes) {
+                seen.set(pixels, [...indexes, index]);
+            } else {
+                seen.set(pixels, [index]);
+            }
+
+            return { ...level, label: pixels };
+        })
+        .map((level, index) => {
+            const indexes = seen.get(level.label);
+
+            if (indexes && indexes.length > 1 && indexes.includes(index)) {
+                return { ...level, label: `${level.label}p (${formatBitrate(level.bitrate)})` };
+            }
+
+            return { ...level, label: `${level.label}p` };
+        });
+};
+
+export { requestFullscreen, exitFullscreen, formatTime, getLevelResolution };
