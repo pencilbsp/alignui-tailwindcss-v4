@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useEffect, useRef } from "react";
+import { memo, useCallback, useEffect, useRef } from "react";
 import {
     PlayIcon,
     PauseIcon,
@@ -13,29 +13,32 @@ import {
 import { cn } from "@/utils/cn";
 import { formatTime } from "@/utils/video-player";
 
-import { useVideoPlayer } from "./video-player-provider";
 import VideoProgressBar from "../core/video-progress-bar";
 import { VideoPlayerSettings } from "./video-player-settings";
+import { PlayerAction, useVideoPlayer } from "./video-player-provider";
 
 const VideoPlayerControls = memo(() => {
     const controlsRef = useRef<HTMLDivElement>(null);
+    const hideTimeoutRef = useRef<number | null>(null);
 
     const {
         mute,
-        controls,
+        status,
         duration,
+        controls,
         isPlaying,
         handlePlay,
         fullscreen,
         handleSeek,
         handleMute,
         currentTime,
+        dispatch,
         handleFullScreen,
         containerElement,
     } = useVideoPlayer();
 
     useEffect(() => {
-        if (!controlsRef.current) return;
+        if (!controlsRef.current || !containerElement) return;
 
         const updateControls = () => {
             if (!controlsRef.current || !containerElement) return;
@@ -52,8 +55,52 @@ const VideoPlayerControls = memo(() => {
 
         updateControls();
 
-        return () => resizeObserver.disconnect();
+        return () => {
+            resizeObserver.disconnect();
+
+            if (hideTimeoutRef.current !== null) {
+                window.clearTimeout(hideTimeoutRef.current);
+            }
+        };
     }, [containerElement]);
+
+    // Xử lý ẩn hiện controls sau khoảng thời gian không tương tác
+    useEffect(() => {
+        const controlsElement = controlsRef.current;
+        if (!controlsElement || !containerElement || ["loading", "paused"].includes(status)) return;
+
+        const resetHideTimeout = (event: MouseEvent | TouchEvent | PointerEvent) => {
+            if (hideTimeoutRef.current !== null) {
+                window.clearTimeout(hideTimeoutRef.current);
+            }
+
+            dispatch({ type: PlayerAction.SET_CONTROLS, payload: true });
+
+            if (controlsRef.current && controlsRef.current.contains(event.target)) {
+                return;
+            }
+
+            hideTimeoutRef.current = window.setTimeout(() => {
+                dispatch({ type: PlayerAction.SET_CONTROLS, payload: false });
+            }, 2000);
+        };
+
+        controlsElement.addEventListener("mousemove", resetHideTimeout);
+        controlsElement.addEventListener("touchstart", resetHideTimeout);
+        containerElement.addEventListener("pointermove", resetHideTimeout);
+        containerElement.addEventListener("pointerleave", resetHideTimeout);
+
+        return () => {
+            controlsElement.removeEventListener("mousemove", resetHideTimeout);
+            controlsElement.removeEventListener("touchstart", resetHideTimeout);
+            containerElement.removeEventListener("pointermove", resetHideTimeout);
+            containerElement.removeEventListener("pointerleave", resetHideTimeout);
+
+            if (hideTimeoutRef.current !== null) {
+                window.clearTimeout(hideTimeoutRef.current);
+            }
+        };
+    }, [status, containerElement, dispatch]);
 
     return (
         <div

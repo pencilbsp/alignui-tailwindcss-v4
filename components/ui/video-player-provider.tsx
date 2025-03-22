@@ -1,11 +1,20 @@
 "use client";
 
 import Hls, { ErrorData, ManifestParsedData } from "hls.js";
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef } from "react";
+import React, {
+    ActionDispatch,
+    createContext,
+    useCallback,
+    useContext,
+    useEffect,
+    useMemo,
+    useReducer,
+    useRef,
+} from "react";
 
-import { exitFullscreen, requestFullscreen } from "@/utils/video-player";
+import { exitFullscreen, getLevelResolution, requestFullscreen } from "@/utils/video-player";
 
-enum PlayerStatus {
+export enum PlayerStatus {
     ERROR = "error",
     PAUSED = "paused",
     PLAYING = "playing",
@@ -13,7 +22,7 @@ enum PlayerStatus {
     BUFFERING = "buffering",
 }
 
-enum PlayerAction {
+export enum PlayerAction {
     SET_MUTE = "SET_MUTE",
     SET_VOLUME = "SET_VOLUME",
     SET_CONTROLS = "SET_CONTROLS",
@@ -24,6 +33,7 @@ enum PlayerAction {
     SET_DURATION = "SET_DURATION",
     SET_CURRENT_LEVEL = "SET_CURRENT_LEVEL",
     SET_MANIFEST = "SET_MANIFEST",
+    SET_PLAYBACK_RATE = "SET_PLAYBACK_RATE",
     SET_STATUS = "SET_STATUS",
     SET_ERROR = "SET_ERROR",
 
@@ -32,7 +42,12 @@ enum PlayerAction {
     CAN_PLAY_EVENT = "CAN_PLAY_EVENT",
 }
 
-type VideoPlayerState = {
+export type PlaybackRate = {
+    value: number;
+    label?: string;
+};
+
+export type VideoPlayerState = {
     mute: boolean;
     volume: number;
     controls: boolean;
@@ -42,6 +57,7 @@ type VideoPlayerState = {
     currentTime: number;
     status: PlayerStatus;
     duration: number | null;
+    playbackRate: PlaybackRate;
     manifest: ManifestParsedData | null;
     error: string | ErrorEvent | ErrorData | null;
     currentLevel: { id: number; auto: boolean } | null;
@@ -59,7 +75,8 @@ type VideoPlayerAction =
     | { type: PlayerAction.SET_CURRENT_TIME; payload: number }
     | { type: PlayerAction.SET_STATUS; payload: PlayerStatus }
     | { type: PlayerAction.SET_DURATION; payload: number | null }
-    | { type: PlayerAction.SET_MANIFEST; payload: ManifestParsedData | null }
+    | { type: PlayerAction.SET_PLAYBACK_RATE; payload: PlaybackRate }
+    | { type: PlayerAction.SET_MANIFEST; payload: ManifestParsedData }
     | { type: PlayerAction.ERROR_EVENT; payload: string | ErrorEvent | ErrorData | null }
     | { type: PlayerAction.SET_CURRENT_LEVEL; payload: { id: number; auto: boolean } | null };
 
@@ -76,6 +93,7 @@ const initialState: VideoPlayerState = {
     fullscreen: false,
     currentLevel: null,
     status: PlayerStatus.LOADING,
+    playbackRate: { value: 1, label: "Chuẩn" },
 };
 
 function reducer(state: VideoPlayerState, action: VideoPlayerAction): VideoPlayerState {
@@ -89,7 +107,8 @@ function reducer(state: VideoPlayerState, action: VideoPlayerAction): VideoPlaye
         case PlayerAction.SET_DURATION:
             return { ...state, duration: action.payload };
         case PlayerAction.SET_MANIFEST:
-            return { ...state, manifest: action.payload };
+            const levels = getLevelResolution(action.payload.levels);
+            return { ...state, manifest: { ...action.payload, levels } };
         case PlayerAction.SET_CONTROLS:
             return { ...state, controls: action.payload };
         case PlayerAction.SET_PLAYING:
@@ -102,6 +121,8 @@ function reducer(state: VideoPlayerState, action: VideoPlayerAction): VideoPlaye
             return { ...state, currentTime: action.payload };
         case PlayerAction.SET_CURRENT_LEVEL:
             return { ...state, currentLevel: action.payload };
+        case PlayerAction.SET_PLAYBACK_RATE:
+            return { ...state, playbackRate: action.payload };
         case PlayerAction.PAUSE_EVENT:
             return { ...state, controls: true, status: PlayerStatus.PAUSED };
         case PlayerAction.ERROR_EVENT:
@@ -115,15 +136,17 @@ function reducer(state: VideoPlayerState, action: VideoPlayerAction): VideoPlaye
 
 // Context có thể được mở rộng thêm các hàm xử lý
 type VideoPlayerContextProps = VideoPlayerState & {
-    hls: Hls | null;
-    videoElement: HTMLVideoElement | null;
-    containerElement: HTMLDivElement | null;
+    hlsInstance: Hls | null;
     handlePlay: VoidFunction;
     handleMute: VoidFunction;
     handleFullScreen: VoidFunction;
     handleSeek: (time: number) => void;
+    videoElement: HTMLVideoElement | null;
+    containerElement: HTMLDivElement | null;
     handleChangeVolume: (volume: number) => void;
     handleChangeQuality: (level: number) => void;
+    dispatch: ActionDispatch<[action: VideoPlayerAction]>;
+    handleChangePlaybackRate: (rate: PlaybackRate) => void;
 };
 
 const VideoPlayerContext = createContext<VideoPlayerContextProps | null>(null);
@@ -147,7 +170,6 @@ function VideoPlayerProvider({ src, children }: Props) {
     const hlsInstance = useRef<Hls | null>(null);
     const videoRef = useRef<HTMLVideoElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
-    const hideTimeoutRef = useRef<number | null>(null);
 
     // Ví dụ xử lý play/pause
     const handlePlay = useCallback(() => {
@@ -197,15 +219,22 @@ function VideoPlayerProvider({ src, children }: Props) {
             if (!hlsInstance.current || !state.manifest) return;
             if (level !== -1 && !state.manifest.levels[level]) return;
 
+            const currentLevel = level === -1 ? hlsInstance.current.currentLevel : level;
             hlsInstance.current.currentLevel = level;
             // Cập nhật currentLevel nếu cần
             dispatch({
                 type: PlayerAction.SET_CURRENT_LEVEL,
-                payload: { id: level, auto: level === -1 },
+                payload: { id: currentLevel, auto: level === -1 },
             });
         },
         [state.manifest],
     );
+
+    const handleChangePlaybackRate = useCallback((rate: PlaybackRate) => {
+        if (!videoRef.current) return;
+        videoRef.current.playbackRate = rate.value;
+        dispatch({ type: PlayerAction.SET_PLAYBACK_RATE, payload: rate });
+    }, []);
 
     // Ví dụ lắng nghe fullscreen change
     useEffect(() => {
@@ -216,37 +245,6 @@ function VideoPlayerProvider({ src, children }: Props) {
         return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
     }, []);
 
-    // Xử lý ẩn hiện controls sau khoảng thời gian không tương tác
-    useEffect(() => {
-        const container = containerRef.current;
-        if (!container || ["loading", "paused"].includes(state.status)) return;
-
-        const resetHideTimeout = () => {
-            if (hideTimeoutRef.current !== null) {
-                window.clearTimeout(hideTimeoutRef.current);
-            }
-            dispatch({ type: PlayerAction.SET_CONTROLS, payload: true });
-            hideTimeoutRef.current = window.setTimeout(() => {
-                dispatch({ type: PlayerAction.SET_CONTROLS, payload: false });
-            }, 2000);
-        };
-
-        container.addEventListener("mousemove", resetHideTimeout);
-        container.addEventListener("touchstart", resetHideTimeout);
-        container.addEventListener("pointermove", resetHideTimeout);
-
-        resetHideTimeout();
-
-        return () => {
-            container.removeEventListener("mousemove", resetHideTimeout);
-            container.removeEventListener("touchstart", resetHideTimeout);
-            container.removeEventListener("pointermove", resetHideTimeout);
-            if (hideTimeoutRef.current !== null) {
-                window.clearTimeout(hideTimeoutRef.current);
-            }
-        };
-    }, [state.status]);
-
     // Lắng nghe các event từ video element và cập nhật state thông qua reducer
     useEffect(() => {
         const video = videoRef.current;
@@ -255,7 +253,6 @@ function VideoPlayerProvider({ src, children }: Props) {
             "pause",
             "error",
             "ended",
-            "seeked",
             "waiting",
             "playing",
             "canplay",
@@ -272,10 +269,10 @@ function VideoPlayerProvider({ src, children }: Props) {
                 case "volumechange":
                     dispatch({ type: PlayerAction.SET_MUTE, payload: video.muted });
                     break;
-                case "play":
                 case "canplay":
                     dispatch({ type: PlayerAction.CAN_PLAY_EVENT, payload: video.duration });
                     break;
+                case "play":
                 case "playing":
                     dispatch({ type: PlayerAction.SET_STATUS, payload: PlayerStatus.PLAYING });
                     break;
@@ -287,7 +284,6 @@ function VideoPlayerProvider({ src, children }: Props) {
                     break;
                 case "timeupdate":
                     dispatch({ type: PlayerAction.SET_CURRENT_TIME, payload: video.currentTime });
-                    break;
                 default:
                     break;
             }
@@ -337,19 +333,31 @@ function VideoPlayerProvider({ src, children }: Props) {
     const context = useMemo(
         () => ({
             ...state,
+            dispatch,
             handlePlay,
             handleMute,
             handleSeek,
             handleFullScreen,
             handleChangeVolume,
             handleChangeQuality,
-            hls: hlsInstance.current,
+            handleChangePlaybackRate,
             videoElement: videoRef.current,
+            hlsInstance: hlsInstance.current,
             containerElement: containerRef.current,
             isPlaying: state.status === PlayerStatus.PLAYING,
             isLoading: state.status === PlayerStatus.LOADING || state.status === PlayerStatus.BUFFERING,
         }),
-        [state, handlePlay, handleMute, handleFullScreen, handleSeek, handleChangeVolume, handleChangeQuality],
+        [
+            state,
+            dispatch,
+            handlePlay,
+            handleMute,
+            handleSeek,
+            handleFullScreen,
+            handleChangeVolume,
+            handleChangeQuality,
+            handleChangePlaybackRate,
+        ],
     );
 
     return (
