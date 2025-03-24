@@ -132,7 +132,7 @@ const QualitySelector = memo(({ view, viewCount, onViewChange }: SubSettingProps
                     <li
                         key={level.label}
                         onClick={() => setCurrentLevel(index)}
-                        className={"flex cursor-pointer items-center justify-between"}
+                        className={"flex cursor-pointer items-center justify-between gap-2"}
                     >
                         <span>{level.label}</span>
                         {isActive && <CheckIcon className="size-4 lg:size-5" />}
@@ -183,7 +183,7 @@ const PlaybackSelector = memo(({ view, viewCount, onViewChange }: SubSettingProp
                 return (
                     <li
                         key={rate.value}
-                        className={"flex cursor-pointer items-center justify-between"}
+                        className={"flex cursor-pointer items-center justify-between gap-2"}
                         onClick={() => setPlaybackRate(rate)}
                     >
                         <span>{rate.label || rate.value}</span>
@@ -258,7 +258,7 @@ const SubtitleSelector = memo(({ view, viewCount, onViewChange }: SubSettingProp
                     <li
                         key={subtitle.name + index}
                         onClick={() => setSubtitleTrack(index)}
-                        className="flex cursor-pointer items-center justify-between"
+                        className="flex cursor-pointer items-center justify-between gap-2"
                     >
                         <span>{subtitle.name}</span>
                         {isActive && <CheckIcon className="size-4 lg:size-5" />}
