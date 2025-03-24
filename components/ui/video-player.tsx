@@ -3,7 +3,7 @@
 import { memo } from "react";
 
 import VideoPlayerPoster from "../core/video-player/poster";
-import VideoPlayerLoading from "../core/video-player/loading";
+// import VideoPlayerLoading from "../core/video-player/loading";
 import VideoPlayerControls from "../core/video-player/controls";
 
 const VideoPlayer = memo(() => {

@@ -13,7 +13,7 @@ export default function Home() {
             {/* <Slide /> */}
 
             <div className="aspect-video h-full w-full max-w-4xl">
-                <VideoPlayerProvider src="https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8">
+                <VideoPlayerProvider src="https://vip.opstream12.com/20250323/26539_b8ba4466/index.m3u8">
                     <VideoPlayer />
                 </VideoPlayerProvider>
             </div>
