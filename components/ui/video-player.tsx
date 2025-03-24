@@ -1,13 +1,21 @@
 "use client";
 
-import VideoPlayerLoading from "./video-player-loading";
-import VideoPlayerControls from "./video-player-controls";
+import { memo } from "react";
 
-export default function VideoPlayer() {
+import VideoPlayerPoster from "../core/video-player/poster";
+import VideoPlayerLoading from "../core/video-player/loading";
+import VideoPlayerControls from "../core/video-player/controls";
+
+const VideoPlayer = memo(() => {
     return (
         <>
-            <VideoPlayerLoading />
+            <VideoPlayerPoster />
+            {/* <VideoPlayerLoading /> */}
             <VideoPlayerControls />
         </>
     );
-}
+});
+
+VideoPlayer.displayName = "VideoPlayer";
+
+export default VideoPlayer;

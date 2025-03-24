@@ -102,10 +102,10 @@ const getLevelResolution = (lavels: Level[]) => {
             const indexes = seen.get(level.label);
 
             if (indexes && indexes.length > 1 && indexes.includes(index)) {
-                return { ...level, label: `${level.label}p (${formatBitrate(level.bitrate)})` };
+                return { ...level, label: `${level.label}p (${formatBitrate(level.bitrate)})` } as Level;
             }
 
-            return { ...level, label: `${level.label}p` };
+            return { ...level, label: `${level.label}p` } as Level;
         });
 };
 
