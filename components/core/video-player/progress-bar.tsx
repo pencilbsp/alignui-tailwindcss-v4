@@ -26,7 +26,7 @@ const VideoPlayerProgressBar = ({ className, ...rest }: HTMLAttributes<HTMLDivEl
 
     const [bufferedRanges, setBufferedRanges] = useState({ start: 0, end: 0 });
 
-    const [thumbPosition, setThumbPosition] = useState<{ x: number; y: number } | null>(null);
+    // const [thumbPosition, setThumbPosition] = useState<{ x: number; y: number } | null>(null);
 
     // const safeValue = Math.min(duration, Math.max(currentTime, 0));
 
@@ -54,19 +54,19 @@ const VideoPlayerProgressBar = ({ className, ...rest }: HTMLAttributes<HTMLDivEl
             const target = e.currentTarget;
             target.setPointerCapture(e.pointerId);
 
-            const handlePointerMove = (moveEvent: PointerEvent) => {
-                setThumbPosition({ x: moveEvent.clientX, y: moveEvent.clientY });
-            };
+            // const handlePointerMove = (moveEvent: PointerEvent) => {
+            //     setThumbPosition({ x: moveEvent.clientX, y: moveEvent.clientY });
+            // };
 
             const handlePointerUp = () => {
                 handleSeek(e.clientX);
                 target.releasePointerCapture(e.pointerId);
                 target.removeEventListener("pointerup", handlePointerUp);
-                target.removeEventListener("pointermove", handlePointerMove);
+                // target.removeEventListener("pointermove", handlePointerMove);
             };
 
             target.addEventListener("pointerup", handlePointerUp);
-            target.addEventListener("pointermove", handlePointerMove);
+            // target.addEventListener("pointermove", handlePointerMove);
         },
         [handleSeek],
     );
@@ -103,7 +103,7 @@ const VideoPlayerProgressBar = ({ className, ...rest }: HTMLAttributes<HTMLDivEl
                     role="progressbar"
                     aria-valuemax={duration}
                     aria-valuenow={currentTime}
-                    style={{ width: `${(currentTime / duration) * 100}%` }}
+                    style={{ width: `${Math.ceil((currentTime / duration) * 100)}%` }}
                     className="bg-primary-base relative z-10 h-full transition-[width] ease-out"
                 />
 
@@ -111,7 +111,7 @@ const VideoPlayerProgressBar = ({ className, ...rest }: HTMLAttributes<HTMLDivEl
                     role="progressbar"
                     aria-valuemax={duration}
                     aria-valuenow={bufferedRanges.end}
-                    style={{ width: `${(bufferedRanges.end / duration) * 100}%` }}
+                    style={{ width: `${Math.ceil((bufferedRanges.end / duration) * 100)}%` }}
                     className="bg-static-white/50 absolute left-0 z-0 h-full transition-[width] ease-out"
                 />
 
