@@ -140,6 +140,7 @@ type VideoPlayerStore = {
     controlsVisible: boolean;
     settingsVisible: boolean;
     playbackRate: PlaybackRate;
+    defaultRates: PlaybackRate[];
     currentLevel: CurrentLevel | null;
     subtitleTrack: SubtitleTrack | null;
     manifest: ManifestParsedData | null;
@@ -155,7 +156,7 @@ type VideoPlayerStore = {
     // setCurrentLevel: (index: number) => void;
     handleCanPlay: (duration: number) => void;
     setCurrentTime: (currentTime: number) => void;
-    setPlaybackRate: (rate: PlaybackRate) => void;
+    setPlaybackRate: (rate: number | PlaybackRate) => void;
     setHlsInstance: (instance: Hls | null) => void;
     setControlsVisible: (controlsVisible: boolean) => void;
     setSettingsVisible: (settingsVisible: boolean) => void;
@@ -181,6 +182,13 @@ export const useVideoPlayer = create<VideoPlayerStore>((set) => ({
     containerElement: null,
     controlsVisible: false,
     settingsVisible: false,
+    defaultRates: [
+        { value: 0.25, label: "0.25x" },
+        { value: 0.5, label: "0.5x" },
+        { value: 1, label: "Chuẩn" },
+        { value: 1.5, label: "1.5x" },
+        { value: 2, label: "2x" },
+    ],
     playbackRate: { value: 1, label: "Chuẩn" },
 
     seek: (time) => {
@@ -198,7 +206,18 @@ export const useVideoPlayer = create<VideoPlayerStore>((set) => ({
         set((state) => {
             if (!state.videoElement) return state;
 
+            if (typeof rate === "number") {
+                rate = { value: rate, label: rate + "x" };
+            }
+
+            const existingRate = state.defaultRates.find((r) => r.value === (rate as PlaybackRate).value);
+
             state.videoElement.playbackRate = rate.value;
+
+            if (!existingRate) {
+                return { defaultRates: [...state.defaultRates, rate], playbackRate: rate };
+            }
+
             return { playbackRate: rate };
         }),
     setSubtitleTrack: (event, track) =>
@@ -290,5 +309,15 @@ export const useVideoPlayer = create<VideoPlayerStore>((set) => ({
         });
     },
     setControlsVisible: (controlsVisible) => set({ controlsVisible }),
+    // setControlsVisible: (controlsVisible) =>
+    //     set((state) => {
+    //         if (state.videoElement) {
+    //             state.videoElement.classList[controlsVisible ? "add" : "remove"]("visible-controls");
+
+    //             return { controlsVisible };
+    //         }
+
+    //         return state;
+    //     }),
     setSettingsVisible: (settingsVisible) => set({ settingsVisible }),
 }));

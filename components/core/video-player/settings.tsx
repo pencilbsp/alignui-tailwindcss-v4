@@ -1,4 +1,4 @@
-import { HTMLAttributes, memo, useEffect, useMemo, useRef, useState } from "react";
+import { HTMLAttributes, memo, useMemo, useRef, useState } from "react";
 import {
     ClockIcon,
     CheckIcon,
@@ -8,7 +8,7 @@ import {
     ChatBubbleBottomCenterTextIcon,
 } from "@heroicons/react/24/outline";
 
-import { PlaybackRate, useVideoPlayer } from "./store";
+import { useVideoPlayer } from "./store";
 
 import { cn } from "@/utils/cn";
 import useClickOutside from "@/hooks/use-click-outside";
@@ -22,7 +22,7 @@ export const VideoPlayerSettings = memo(({ className, ...rest }: Props) => {
     const wapperRef = useRef<HTMLDivElement | null>(null);
 
     const settingsVisible = useVideoPlayer((state) => state.settingsVisible);
-    const containerElement = useVideoPlayer((state) => state.containerElement);
+    // const containerElement = useVideoPlayer((state) => state.containerElement);
     const setSettingsVisible = useVideoPlayer((state) => state.setSettingsVisible);
 
     const [views, setViews] = useState<ViewType[]>([{ id: "root", title: "Cài đặt" }]);
@@ -31,20 +31,6 @@ export const VideoPlayerSettings = memo(({ className, ...rest }: Props) => {
 
     const view = useMemo(() => views.at(-1), [views]);
     const handleViewChange = (view: ViewType) => setViews((prev) => [...prev, view]);
-
-    useEffect(() => {
-        if (containerElement) {
-            const resizeObserver = new ResizeObserver(() => {
-                const containerRect = containerElement.getBoundingClientRect();
-                console.log("containerWidth", containerRect.width);
-                console.log("containerHeight", containerRect.height);
-            });
-
-            resizeObserver.observe(containerElement);
-
-            return () => resizeObserver.disconnect();
-        }
-    }, [containerElement]);
 
     if (!view) return null;
 
@@ -145,15 +131,8 @@ const QualitySelector = memo(({ view, viewCount, onViewChange }: SubSettingProps
 
 QualitySelector.displayName = "QualitySelector";
 
-const playbackRates: PlaybackRate[] = [
-    { value: 0.25, label: "0.25x" },
-    { value: 0.5, label: "0.5x" },
-    { value: 1, label: "Chuẩn" },
-    { value: 1.5, label: "1.5x" },
-    { value: 2, label: "2x" },
-];
-
 const PlaybackSelector = memo(({ view, viewCount, onViewChange }: SubSettingProps) => {
+    const defaultRates = useVideoPlayer((state) => state.defaultRates);
     const playbackRate = useVideoPlayer((state) => state.playbackRate);
     const setPlaybackRate = useVideoPlayer((state) => state.setPlaybackRate);
 
@@ -177,7 +156,7 @@ const PlaybackSelector = memo(({ view, viewCount, onViewChange }: SubSettingProp
 
     return (
         <ul className="flex min-w-40 flex-col gap-2">
-            {playbackRates.map((rate) => {
+            {defaultRates.map((rate) => {
                 const isActive = playbackRate.value === rate.value;
 
                 return (

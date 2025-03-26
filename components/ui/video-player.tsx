@@ -2,15 +2,17 @@
 
 import { memo } from "react";
 
+import "@/app/styles/video-player.css";
+
 import VideoPlayerPoster from "../core/video-player/poster";
-// import VideoPlayerLoading from "../core/video-player/loading";
 import VideoPlayerControls from "../core/video-player/controls";
+import VideoPlayerSubtitle from "../core/video-player/subtitle";
 
 const VideoPlayer = memo(() => {
     return (
         <>
             <VideoPlayerPoster />
-            {/* <VideoPlayerLoading /> */}
+            <VideoPlayerSubtitle />
             <VideoPlayerControls />
         </>
     );

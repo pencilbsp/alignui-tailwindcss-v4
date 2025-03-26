@@ -1,0 +1,21 @@
+
+.cue {
+    font-size: var(--video-player-cue-font-size);
+}
+
+.cue,
+video::cue {
+    text-shadow:
+        -1px -1px 0 #000,
+        1px -1px 0 #000,
+        -1px 1px 0 #000,
+        1px 1px 0 #000;
+}
+
+video::-webkit-media-text-track-display-backdrop {
+    background: none;
+}
+
+video::-webkit-media-text-track-display {
+    display: none;
+}

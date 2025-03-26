@@ -43,6 +43,27 @@ const VideoPlayerControls = memo(() => {
     const toggleFullScreen = useVideoPlayer((state) => state.toggleFullScreen);
     const setControlsVisible = useVideoPlayer((state) => state.setControlsVisible);
 
+    useEffect(() => {
+        if (containerElement) {
+            const resizeObserver = new ResizeObserver(() => {
+                const containerRect = containerElement.getBoundingClientRect();
+
+                if (controlsRef.current) {
+                    const controlsRect = controlsRef.current.getBoundingClientRect();
+                    containerElement.style.setProperty("--video-player-controls-height", controlsRect.height + "px");
+                }
+
+                const cueFontSize = Math.min(Math.max(containerRect.width * 0.03, 14), 24);
+                containerElement.style.setProperty("--video-player-cue-font-size", cueFontSize + "px");
+                containerElement.style.setProperty("--video-player-height", containerRect.height + "px");
+            });
+
+            resizeObserver.observe(containerElement);
+
+            return () => resizeObserver.disconnect();
+        }
+    }, [containerElement]);
+
     // Xử lý ẩn hiện controls sau khoảng thời gian không tương tác
     useEffect(() => {
         if (!containerElement || [State.LOADING, State.PAUSED].includes(state)) {

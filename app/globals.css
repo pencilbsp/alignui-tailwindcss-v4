@@ -60,3 +60,9 @@
 @utility slide-basis-* {
     flex-basis: calc((100% - var(--slide-gap, 0px)) * --value(ratio));
 }
+
+@utility translate-y-cue-* {
+    &::-webkit-media-text-track-container {
+        transform: translateY(calc(--value(integer) * -1px));
+    }
+}

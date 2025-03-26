@@ -1,108 +1,54 @@
 "use client";
 
 import Hls from "hls.js";
-import { createContext, HTMLAttributes, useCallback, useContext, useEffect, useReducer, useRef } from "react";
+import { HTMLAttributes, useEffect, useRef } from "react";
 
 import { cn } from "@/utils/cn";
+import { useVideoPlayer, State } from "./store";
 
-export enum State {
-    ERROR = "ERROR",
-    PAUSED = "PAUSED",
-    PLAYING = "PLAYING",
-    LOADING = "LOADING",
-    BUFFERING = "BUFFERING",
-}
-
-type VideoPlayerState = {
-    state: State;
-    mute: boolean;
-    isPlaying: boolean;
-    showSettings: boolean;
-    showControls: boolean;
-    hlsInstance: Hls | null;
-    videoElement: HTMLVideoElement | null;
-    containerElement: HTMLDivElement | null;
-};
-
-// Context có thể được mở rộng thêm các hàm xử lý
-type VideoPlayerContextProps = VideoPlayerState & {
-    togglePlay: VoidFunction;
-};
-
-const VideoPlayerContext = createContext<VideoPlayerContextProps | null>(null);
-
-export enum PlayerAction {
-    TOGGLE_PLAY = "TOGGLE_PLAY",
-
-    SET_HLS_INSTANCE = "SET_HLS_INSTANCE",
-}
-
-type VideoPlayerAction =
-    | { type: PlayerAction.TOGGLE_PLAY; payload: boolean }
-    | { type: PlayerAction.SET_HLS_INSTANCE; payload: Hls };
-
-const reducer = (state: VideoPlayerState, action: VideoPlayerAction) => {
-    switch (action.type) {
-        case PlayerAction.TOGGLE_PLAY:
-            return { ...state, isPlaying: action.payload };
-
-        case PlayerAction.SET_HLS_INSTANCE:
-            return { ...state, hlsInstance: action.payload };
-
-        default:
-            return state;
-    }
-};
-
-const useVideoPlayer = () => {
-    const context = useContext(VideoPlayerContext);
-
-    if (!context) {
-        throw new Error("useVideoPlayer must be used within a VideoPlayerProvider");
-    }
-
-    return context;
-};
-
-const initialState: VideoPlayerState = {
-    mute: false,
-    isPlaying: false,
-    hlsInstance: null,
-    videoElement: null,
-    showSettings: false,
-    showControls: false,
-    state: State.LOADING,
-    containerElement: null,
+type Subtitle = {
+    src: string;
+    lang: string;
+    name: string;
+    default?: boolean;
 };
 
 type Props = HTMLAttributes<HTMLDivElement> & {
     src: string;
-    onHlsInstance?: (hlsInstance: Hls) => void;
+    subtitles?: Subtitle[];
 };
 
-const VideoPlayerProvider = ({ children, className, src, onHlsInstance, ...rest }: Props) => {
+const VideoPlayerProvider = ({ children, className, src, ...rest }: Props) => {
     const videoRef = useRef<HTMLVideoElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
-    const [state, dispatch] = useReducer(reducer, initialState);
-    // const [hlsInstance, setHlsInstance] = useState<Hls | null>(null);
-    //
-    const togglePlay = useCallback(() => {
-        if (!videoRef.current) return;
 
-        if (videoRef.current.paused) {
-            videoRef.current.play();
-        } else {
-            videoRef.current.pause();
-        }
-        dispatch({ type: PlayerAction.TOGGLE_PLAY, payload: !videoRef.current.paused });
-    }, []);
+    const setState = useVideoPlayer((state) => state.setState);
+    const setManifest = useVideoPlayer((state) => state.setManifest);
+    const setFullScreen = useVideoPlayer((state) => state.setFullScreen);
+    const handleCanPlay = useVideoPlayer((state) => state.handleCanPlay);
+    const setHlsInstance = useVideoPlayer((state) => state.setHlsInstance);
+    const setCurrentTime = useVideoPlayer((state) => state.setCurrentTime);
+    const setPlaybackRate = useVideoPlayer((state) => state.setPlaybackRate);
+    const controlsVisible = useVideoPlayer((state) => state.controlsVisible);
+    const setVideoElement = useVideoPlayer((state) => state.setVideoElement);
+    const setCurrentLevel = useVideoPlayer((state) => state.setCurrentLevel);
+    const setSubtitleTrack = useVideoPlayer((state) => state.setSubtitleTrack);
+    const setContainerElement = useVideoPlayer((state) => state.setContainerElement);
+
+    useEffect(() => {
+        setContainerElement(containerRef.current);
+    }, [setContainerElement]);
 
     useEffect(() => {
         const video = videoRef.current;
         let hlsInstance: Hls | null = null;
 
         if (video) {
-            const events: (keyof HTMLMediaElementEventMap)[] = [
+            setVideoElement(video);
+
+            document.addEventListener("fullscreenchange", setFullScreen);
+
+            const events: (keyof HTMLMediaElementEventMap | string)[] = [
                 "play",
                 "pause",
                 "error",
@@ -111,34 +57,39 @@ const VideoPlayerProvider = ({ children, className, src, onHlsInstance, ...rest 
                 "playing",
                 "canplay",
                 "timeupdate",
+                "ratechange",
                 "volumechange",
+                "webkitendfullscreen",
+                "webkitbeginfullscreen",
             ];
 
             const handleEvent = (event: Event) => {
-                if (!video) return;
-
                 switch (event.type) {
-                    case "pause":
-                        dispatch({ type: PlayerAction.PAUSE_EVENT });
-                        break;
-                    case "volumechange":
-                        dispatch({ type: PlayerAction.SET_MUTE, payload: video.muted });
-                        break;
                     case "canplay":
-                        dispatch({ type: PlayerAction.CAN_PLAY_EVENT, payload: video.duration });
+                        handleCanPlay(video.duration);
+                        break;
+                    case "timeupdate":
+                        setCurrentTime(video.currentTime);
                         break;
                     case "play":
                     case "playing":
-                        dispatch({ type: PlayerAction.SET_STATUS, payload: PlayerStatus.PLAYING });
+                        setState(State.PLAYING);
                         break;
-                    case "error":
-                        dispatch({ type: PlayerAction.ERROR_EVENT, payload: event as ErrorEvent });
+                    case "pause":
+                        setState(State.PAUSED);
                         break;
                     case "waiting":
-                        dispatch({ type: PlayerAction.SET_STATUS, payload: PlayerStatus.BUFFERING });
+                        setState(State.BUFFERING);
                         break;
-                    case "timeupdate":
-                        dispatch({ type: PlayerAction.SET_CURRENT_TIME, payload: video.currentTime });
+                    case "ratechange":
+                        setPlaybackRate(video.playbackRate);
+                        break;
+                    case "webkitendfullscreen":
+                        setFullScreen(false);
+                        break;
+                    case "webkitbeginfullscreen":
+                        setFullScreen(true);
+                        break;
                     default:
                         break;
                 }
@@ -146,13 +97,15 @@ const VideoPlayerProvider = ({ children, className, src, onHlsInstance, ...rest 
 
             events.forEach((eventName) => video.addEventListener(eventName, handleEvent));
 
-            if (Hls.isSupported()) {
+            if (!src.includes("m3u8")) {
+                video.src = src;
+            } else if (Hls.isSupported()) {
                 hlsInstance = new Hls();
-                dispatch({ type: PlayerAction.SET_HLS_INSTANCE, payload: hlsInstance });
+                setHlsInstance(hlsInstance);
 
-                if (typeof onHlsInstance === "function") {
-                    onHlsInstance(hlsInstance);
-                }
+                hlsInstance.on(Hls.Events.MANIFEST_PARSED, setManifest);
+                hlsInstance.on(Hls.Events.LEVEL_SWITCHED, setCurrentLevel);
+                hlsInstance.on(Hls.Events.SUBTITLE_TRACK_SWITCH, setSubtitleTrack);
 
                 hlsInstance.loadSource(src);
                 hlsInstance.attachMedia(video);
@@ -163,32 +116,49 @@ const VideoPlayerProvider = ({ children, className, src, onHlsInstance, ...rest 
             }
 
             return () => {
-                events.forEach((eventName) => video.removeEventListener(eventName, handleEvent));
-
                 if (hlsInstance) {
+                    hlsInstance.off(Hls.Events.MANIFEST_PARSED, setManifest);
+                    hlsInstance.off(Hls.Events.LEVEL_SWITCHED, setCurrentLevel);
+                    hlsInstance.off(Hls.Events.SUBTITLE_TRACK_SWITCH, setSubtitleTrack);
+
                     hlsInstance.destroy();
+                    setHlsInstance(null);
+                }
+
+                if (video) {
+                    document.removeEventListener("fullscreenchange", setFullScreen);
+                    events.forEach((eventName) => video.removeEventListener(eventName, handleEvent));
                 }
             };
         }
-    }, [src, onHlsInstance]);
+    }, [
+        src,
+        setState,
+        setManifest,
+        handleCanPlay,
+        setFullScreen,
+        setCurrentTime,
+        setHlsInstance,
+        setCurrentLevel,
+        setVideoElement,
+        setPlaybackRate,
+        setSubtitleTrack,
+    ]);
 
     return (
-        <VideoPlayerContext.Provider
-            value={{
-                ...state,
-                videoElement: videoRef.current,
-                containerElement: containerRef.current,
+        <div ref={containerRef} className={cn("text-static-white relative", className)} {...rest}>
+            <video
+                playsInline
+                ref={videoRef}
+                className={cn(
+                    "h-full w-full",
+                    controlsVisible ? "translate-y-cue-68 lg:translate-y-cue-80" : "translate-y-cue-12",
+                )}
+            />
 
-                togglePlay,
-            }}
-        >
-            <div ref={containerRef} className={cn("relative", className)} {...rest}>
-                <video ref={videoRef} playsInline className="h-full w-full" />
-                {children}
-            </div>
-        </VideoPlayerContext.Provider>
+            {children}
+        </div>
     );
 };
 
-export { useVideoPlayer };
 export default VideoPlayerProvider;

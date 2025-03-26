@@ -98,12 +98,12 @@ const VideoPlayerProgressBar = ({ className, ...rest }: HTMLAttributes<HTMLDivEl
             className={cn("flex h-2 w-full items-center", className)}
             {...rest}
         >
-            <div className="bg-static-white/20 shadow-regular-md relative flex h-1 w-full cursor-pointer items-center hover:h-1.5 lg:h-1.5 lg:hover:h-2">
+            <div className="bg-static-white/20 shadow-regular-md relative flex h-1 w-full cursor-pointer items-center overflow-hidden hover:h-1.5 lg:h-1.5 lg:hover:h-2">
                 <div
                     role="progressbar"
                     aria-valuemax={duration}
                     aria-valuenow={currentTime}
-                    style={{ width: `${Math.ceil((currentTime / duration) * 100)}%` }}
+                    style={{ width: `${(currentTime / duration) * 100}%` }}
                     className="bg-primary-base relative z-10 h-full transition-[width] ease-out"
                 />
 
@@ -111,7 +111,7 @@ const VideoPlayerProgressBar = ({ className, ...rest }: HTMLAttributes<HTMLDivEl
                     role="progressbar"
                     aria-valuemax={duration}
                     aria-valuenow={bufferedRanges.end}
-                    style={{ width: `${Math.ceil((bufferedRanges.end / duration) * 100)}%` }}
+                    style={{ width: `${(bufferedRanges.end / duration) * 100}%` }}
                     className="bg-static-white/50 absolute left-0 z-0 h-full transition-[width] ease-out"
                 />
 
