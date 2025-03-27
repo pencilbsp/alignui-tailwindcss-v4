@@ -18,7 +18,7 @@ type Props = HTMLAttributes<HTMLDivElement> & {
     subtitles?: Subtitle[];
 };
 
-const VideoPlayerProvider = ({ children, className, src, ...rest }: Props) => {
+const VideoPlayerProvider = ({ children, className, src, subtitles, ...rest }: Props) => {
     const videoRef = useRef<HTMLVideoElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
 
@@ -146,12 +146,12 @@ const VideoPlayerProvider = ({ children, className, src, ...rest }: Props) => {
     ]);
 
     return (
-        <div ref={containerRef} className={cn("text-static-white relative", className)} {...rest}>
+        <div ref={containerRef} className={cn("text-static-white relative flex items-center", className)} {...rest}>
             <video
                 playsInline
                 ref={videoRef}
                 className={cn(
-                    "h-full w-full",
+                    "hide-native-cue h-auto w-full",
                     controlsVisible ? "translate-y-cue-68 lg:translate-y-cue-80" : "translate-y-cue-12",
                 )}
             />

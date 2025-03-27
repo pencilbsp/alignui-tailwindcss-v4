@@ -59,8 +59,8 @@ const VideoPlayerSubtitle = memo(() => {
     return (
         <div
             className={cn(
-                "absolute bottom-0 flex w-full justify-center transition-all",
-                controlsVisible ? "mb-17 lg:mb-20" : "mb-3",
+                "absolute bottom-0 flex w-full justify-center transition-[margin] cue-display mb-3",
+                controlsVisible && "cue-mb",
             )}
         >
             <div className="cue">

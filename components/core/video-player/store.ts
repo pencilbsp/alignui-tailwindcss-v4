@@ -1,11 +1,11 @@
 import { create } from "zustand";
 import Hls, {
-    ManifestParsedData,
     Events,
-    LevelSwitchedData,
     Level,
-    SubtitleTrackSwitchData,
     MediaPlaylist,
+    LevelSwitchedData,
+    ManifestParsedData,
+    SubtitleTrackSwitchData,
 } from "hls.js";
 
 const requestFullscreen = (element: HTMLElement) => {
@@ -126,9 +126,24 @@ export enum State {
     BUFFERING = "buffering",
 }
 
+export enum SettingsName {
+    ROOT = "ROOT",
+    LEVEL = "LEVEL",
+    SUBTITLE = "SUBTITLE",
+    PLAYBACK_RATE = "PLAYBACK_RATE",
+}
+
 export type SubtitleTrack = { id: number };
+export type SettingView = { id: string; title: string };
 export type CurrentLevel = { id: number; auto: boolean };
 export type PlaybackRate = { value: number; label?: string };
+
+export const settings: Record<SettingsName, SettingView> = {
+    [SettingsName.ROOT]: { id: SettingsName.ROOT, title: "Cài đặt" },
+    [SettingsName.LEVEL]: { id: SettingsName.LEVEL, title: "Chất lượng" },
+    [SettingsName.SUBTITLE]: { id: SettingsName.SUBTITLE, title: "Phụ đề" },
+    [SettingsName.PLAYBACK_RATE]: { id: SettingsName.PLAYBACK_RATE, title: "Tốc độ phát" },
+};
 
 type VideoPlayerStore = {
     state: State;
@@ -138,28 +153,31 @@ type VideoPlayerStore = {
     duration: number | null;
     hlsInstance: Hls | null;
     controlsVisible: boolean;
-    settingsVisible: boolean;
     playbackRate: PlaybackRate;
     defaultRates: PlaybackRate[];
     currentLevel: CurrentLevel | null;
     subtitleTrack: SubtitleTrack | null;
     manifest: ManifestParsedData | null;
+    settingsVisible: SettingView[] | null;
     videoElement: HTMLVideoElement | null;
     containerElement: HTMLDivElement | null;
 
     togglePlay: VoidFunction;
     toggleMute: VoidFunction;
+    closeSettings: () => void;
+    toggleSettings: () => void;
     seek: (time: number) => void;
+    toPreviousSettings: () => void;
     toggleFullScreen: VoidFunction;
-    setState: (state: State) => void;
-    setFullScreen: (e: Event | boolean) => void;
-    // setCurrentLevel: (index: number) => void;
     handleCanPlay: (duration: number) => void;
+    toNextSettings: (view: SettingView) => void;
+    setFullScreen: (e: Event | boolean) => void;
+
+    setState: (state: State) => void;
     setCurrentTime: (currentTime: number) => void;
-    setPlaybackRate: (rate: number | PlaybackRate) => void;
     setHlsInstance: (instance: Hls | null) => void;
+    setPlaybackRate: (rate: number | PlaybackRate) => void;
     setControlsVisible: (controlsVisible: boolean) => void;
-    setSettingsVisible: (settingsVisible: boolean) => void;
     setVideoElement: (element: HTMLVideoElement | null) => void;
     setContainerElement: (element: HTMLDivElement | null) => void;
     setManifest: (e: Events.MANIFEST_PARSED, manifest: ManifestParsedData) => void;
@@ -179,9 +197,9 @@ export const useVideoPlayer = create<VideoPlayerStore>((set) => ({
     videoElement: null,
     subtitleTrack: null,
     state: State.LOADING,
+    settingsVisible: null,
     containerElement: null,
     controlsVisible: false,
-    settingsVisible: false,
     defaultRates: [
         { value: 0.25, label: "0.25x" },
         { value: 0.5, label: "0.5x" },
@@ -309,15 +327,25 @@ export const useVideoPlayer = create<VideoPlayerStore>((set) => ({
         });
     },
     setControlsVisible: (controlsVisible) => set({ controlsVisible }),
-    // setControlsVisible: (controlsVisible) =>
-    //     set((state) => {
-    //         if (state.videoElement) {
-    //             state.videoElement.classList[controlsVisible ? "add" : "remove"]("visible-controls");
+    closeSettings: () => set({ settingsVisible: null }),
+    toggleSettings: () =>
+        set((state) => {
+            return { settingsVisible: state.settingsVisible ? null : [settings.ROOT] };
+        }),
+    toPreviousSettings: () =>
+        set((state) => {
+            if (Array.isArray(state.settingsVisible) && state.settingsVisible.length > 1) {
+                return { settingsVisible: state.settingsVisible.slice(0, -1) };
+            }
 
-    //             return { controlsVisible };
-    //         }
+            return state;
+        }),
+    toNextSettings: (view: SettingView) =>
+        set((state) => {
+            if (Array.isArray(state.settingsVisible)) {
+                return { settingsVisible: [...state.settingsVisible, view] };
+            }
 
-    //         return state;
-    //     }),
-    setSettingsVisible: (settingsVisible) => set({ settingsVisible }),
+            return state;
+        }),
 }));

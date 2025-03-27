@@ -1,59 +1,73 @@
-import { memo, useEffect, useRef } from "react";
+"use client";
+
+import { memo, useEffect, useMemo, useRef } from "react";
+// import {
+//     PlayIcon,
+//     PauseIcon,
+//     SpeakerXMarkIcon,
+//     SpeakerWaveIcon,
+//     ArrowsPointingInIcon,
+//     ArrowsPointingOutIcon,
+// } from "@heroicons/react/24/outline";
+
 import {
-    PlayIcon,
-    PauseIcon,
-    SpeakerXMarkIcon,
-    SpeakerWaveIcon,
-    ArrowsPointingInIcon,
-    ArrowsPointingOutIcon,
-} from "@heroicons/react/24/outline";
+    RiPauseLine,
+    RiVolumeUpLine,
+    RiPlayLargeLine,
+    RiVolumeMuteLine,
+    RiFullscreenLine,
+    RiFullscreenExitLine,
+    RiClosedCaptioningLine,
+} from "@remixicon/react";
 
 import { cn } from "@/utils/cn";
 
+import VideoPlayerTime from "./time";
 import VideoPlayerSettings from "./settings";
+import ControlButton from "./control-button";
 import VideoProgressBar from "./progress-bar";
 import { useVideoPlayer, State } from "./store";
 
-const formatTime = (time: number) => {
-    const minutes = Math.floor(time / 60)
-        .toString()
-        .padStart(2, "0");
-    const seconds = Math.floor(time % 60)
-        .toString()
-        .padStart(2, "0");
-
-    return minutes + ":" + seconds;
-};
-
 const VideoPlayerControls = memo(() => {
     const controlsRef = useRef<HTMLDivElement>(null);
-    const hideTimeoutRef = useRef<number | null>(null);
-    // console.log("rendering VideoPlayerControls...");
+    const hideTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const mute = useVideoPlayer((state) => state.mute);
     const state = useVideoPlayer((state) => state.state);
-    const duration = useVideoPlayer((state) => state.duration);
     const toggleMute = useVideoPlayer((state) => state.toggleMute);
     const togglePlay = useVideoPlayer((state) => state.togglePlay);
     const fullScreen = useVideoPlayer((state) => state.fullScreen);
-    const currentTime = useVideoPlayer((state) => state.currentTime);
+    const videoElement = useVideoPlayer((state) => state.videoElement);
     const settingsVisible = useVideoPlayer((state) => state.settingsVisible);
     const controlsVisible = useVideoPlayer((state) => state.controlsVisible);
     const containerElement = useVideoPlayer((state) => state.containerElement);
     const toggleFullScreen = useVideoPlayer((state) => state.toggleFullScreen);
     const setControlsVisible = useVideoPlayer((state) => state.setControlsVisible);
 
+    const isPlaying = useMemo(() => state === State.PLAYING, [state]);
+
     useEffect(() => {
-        if (containerElement) {
+        if (containerElement && videoElement) {
             const resizeObserver = new ResizeObserver(() => {
                 const containerRect = containerElement.getBoundingClientRect();
 
+                let controlsHeight = 0;
                 if (controlsRef.current) {
                     const controlsRect = controlsRef.current.getBoundingClientRect();
-                    containerElement.style.setProperty("--video-player-controls-height", controlsRect.height + "px");
+                    controlsHeight = controlsRect.height;
+                    containerElement.style.setProperty("--video-player-controls-height", controlsHeight + "px");
                 }
 
-                const cueFontSize = Math.min(Math.max(containerRect.width * 0.03, 14), 24);
+                if (videoElement) {
+                    const videoRect = videoElement.getBoundingClientRect();
+                    const safeAreaBottom = containerRect.height - videoRect.bottom;
+                    containerElement.style.setProperty("--video-player-safe-area-bottom", safeAreaBottom + "px");
+
+                    const isAdaptive = safeAreaBottom <= controlsHeight;
+                    containerElement.classList[isAdaptive ? "add" : "remove"]("adaptive-cue-display");
+                }
+
+                const cueFontSize = Math.min(Math.max(containerRect.width * 0.025, 14), 36);
                 containerElement.style.setProperty("--video-player-cue-font-size", cueFontSize + "px");
                 containerElement.style.setProperty("--video-player-height", containerRect.height + "px");
             });
@@ -62,24 +76,22 @@ const VideoPlayerControls = memo(() => {
 
             return () => resizeObserver.disconnect();
         }
-    }, [containerElement]);
+    }, [containerElement, videoElement]);
 
     // Xử lý ẩn hiện controls sau khoảng thời gian không tương tác
     useEffect(() => {
-        if (!containerElement || [State.LOADING, State.PAUSED].includes(state)) {
-            return;
-        }
+        if (!containerElement || [State.LOADING, State.PAUSED].includes(state)) return;
 
         const resetHideTimeout = () => {
             if (hideTimeoutRef.current !== null) {
-                window.clearTimeout(hideTimeoutRef.current);
+                clearTimeout(hideTimeoutRef.current);
             }
 
             setControlsVisible(true);
 
             if (settingsVisible) return;
 
-            hideTimeoutRef.current = window.setTimeout(() => {
+            hideTimeoutRef.current = setTimeout(() => {
                 setControlsVisible(false);
             }, 2000);
         };
@@ -105,7 +117,7 @@ const VideoPlayerControls = memo(() => {
         <div
             ref={controlsRef}
             className={cn(
-                "from-static-black/40 absolute bottom-0 left-0 flex w-full flex-col gap-3 bg-gradient-to-t to-transparent px-4 py-3 transition-all duration-300 lg:gap-4",
+                "from-static-black/40 absolute bottom-0 left-0 flex w-full flex-col gap-2 bg-gradient-to-t to-transparent px-4 py-3 transition-all lg:gap-3",
                 !controlsVisible && "invisible opacity-0",
             )}
         >
@@ -113,52 +125,34 @@ const VideoPlayerControls = memo(() => {
 
             <div className="flex justify-between">
                 <div className="flex items-center gap-3 lg:gap-4">
-                    <button type="button" onClick={togglePlay} aria-label="Pause Button" className="cursor-pointer">
-                        {state === State.PLAYING ? (
-                            <PauseIcon className="size-6 lg:size-8" />
-                        ) : (
-                            <PlayIcon className="size-6 lg:size-8" />
-                        )}
-                    </button>
-                    <div className="flex gap-3">
-                        <button
-                            type="button"
-                            onClick={toggleMute}
-                            className="cursor-pointer"
-                            aria-label={mute ? "Unmute" : "Mute"}
-                        >
-                            {mute ? (
-                                <SpeakerXMarkIcon className="size-6 lg:size-8" />
-                            ) : (
-                                <SpeakerWaveIcon className="size-6 lg:size-8" />
-                            )}
-                        </button>
-                    </div>
+                    <ControlButton
+                        onClick={togglePlay}
+                        icon={isPlaying ? RiPauseLine : RiPlayLargeLine}
+                        aria-label={isPlaying ? "Pause video" : "Play video"}
+                    />
 
-                    {duration !== null && (
-                        <div className="text-subheading-sm lg:text-subheading-lg flex items-center gap-1">
-                            <span>{formatTime(currentTime)}</span>
-                            <span>/</span>
-                            <span>{formatTime(duration)}</span>
-                        </div>
-                    )}
+                    <ControlButton
+                        onClick={toggleMute}
+                        aria-label={mute ? "Unmute" : "Mute"}
+                        icon={mute ? RiVolumeMuteLine : RiVolumeUpLine}
+                    />
+
+                    <VideoPlayerTime />
                 </div>
 
                 <div className="flex items-center gap-3 lg:gap-4">
+                    <ControlButton
+                        icon={RiClosedCaptioningLine}
+                        aria-label={fullScreen ? "Enable subtitle" : "Disable subtitle"}
+                    />
+
                     <VideoPlayerSettings />
 
-                    <button
-                        type="button"
-                        className="cursor-pointer"
+                    <ControlButton
                         onClick={toggleFullScreen}
-                        aria-label={fullScreen ? "Exit Fullscreen" : "Enter Fullscreen"}
-                    >
-                        {fullScreen ? (
-                            <ArrowsPointingInIcon className="size-6 lg:size-8" />
-                        ) : (
-                            <ArrowsPointingOutIcon className="size-6 lg:size-8" />
-                        )}
-                    </button>
+                        icon={fullScreen ? RiFullscreenExitLine : RiFullscreenLine}
+                        aria-label={fullScreen ? "Exit fullscreen" : "Enter fullscreen"}
+                    />
                 </div>
             </div>
         </div>
