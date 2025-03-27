@@ -2,10 +2,10 @@
 
 import * as React from "react";
 import { Slot } from "@radix-ui/react-slot";
-import { tv, type VariantProps } from "tailwind-variants";
 
 import type { PolymorphicComponentProps } from "@/utils/polymorphic";
 import { recursiveCloneChildren } from "@/utils/recursive-clone-children";
+import { tv, type VariantProps } from "tailwind-variants";
 
 const BUTTON_ROOT_NAME = "ButtonRoot";
 const BUTTON_ICON_NAME = "ButtonIcon";
