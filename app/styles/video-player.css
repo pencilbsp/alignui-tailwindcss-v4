@@ -1,6 +1,10 @@
-
 .cue {
     font-size: var(--video-player-cue-font-size);
+    line-height: 120%;
+}
+
+.cue-display {
+    bottom: var(--video-player-safe-area-bottom, 0);
 }
 
 .cue,
@@ -16,6 +20,12 @@ video::-webkit-media-text-track-display-backdrop {
     background: none;
 }
 
-video::-webkit-media-text-track-display {
+video.hide-native-cue::cue,
+video.hide-native-cue::-webkit-media-text-track-display {
+    opacity: 0;
     display: none;
+}
+
+.adaptive-cue-display .cue-mb {
+    margin-bottom: var(--video-player-controls-height);
 }
