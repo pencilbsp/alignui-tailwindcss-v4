@@ -11,6 +11,10 @@
     --animate-accordion-up: accordion-up 0.2s ease-out;
     --animate-accordion-down: accordion-down 0.2s ease-out;
     --animate-spinner-leaf-fade: spinner-leaf-fade 800ms linear infinite;
+    --animate-enter-from-left: enter-from-left 250ms ease;
+    --animate-enter-from-right: enter-from-right 250ms ease;
+    --animate-exit-to-left: exit-to-left 250ms ease;
+    --animate-exit-to-right: exit-to-right 250ms ease;
 
     --breakpoint-xs: 30rem;
 
@@ -44,6 +48,50 @@
         to {
             height: var(--radix-accordion-content-height);
             opacity: 1;
+        }
+    }
+
+    @keyframes enter-from-right {
+        from {
+            opacity: 0;
+            transform: translateX(100px);
+        }
+        to {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    }
+
+    @keyframes enter-from-left {
+        from {
+            opacity: 0;
+            transform: translateX(-100px);
+        }
+        to {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    }
+
+    @keyframes exit-to-right {
+        from {
+            opacity: 1;
+            transform: translateX(0);
+        }
+        to {
+            opacity: 0;
+            transform: translateX(100px);
+        }
+    }
+
+    @keyframes exit-to-left {
+        from {
+            opacity: 1;
+            transform: translateX(0);
+        }
+        to {
+            opacity: 0;
+            transform: translateX(-100px);
         }
     }
 }
