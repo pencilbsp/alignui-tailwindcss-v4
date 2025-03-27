@@ -18,10 +18,11 @@ export default function Home() {
                     //     {
                     //         lang: "en",
                     //         name: "English",
-                    //         src: "http://localhost:3000/videos/video.vtt",
+                    //         src: "https://test.trollhub.me/public/subtitles/video.vtt",
                     //     },
                     // ]}
-                    src="http://localhost:3000/videos/master.m3u8"
+                    // src="https://sundaythekingplays.xyz/hls/PpzJ2Hd9zUsiTxXA0+FciL72dO18vbuqacVLUoYGZJAOSpLjOtwLb8jaCqzk6cgBxgw-8vh5PilcnF51X2fEsQ==/aW5kZXgtZjItdjEtYTEubTN1OA==.m3u8"
+                    src="https://test.trollhub.me/public/videos/test_2/master.m3u8"
                 >
                     <VideoPlayer />
                 </VideoPlayerProvider>
