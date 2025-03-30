@@ -164,22 +164,23 @@ type VideoPlayerStore = {
 
     togglePlay: VoidFunction;
     toggleMute: VoidFunction;
-    closeSettings: () => void;
-    toggleSettings: () => void;
+    // closeSettings: () => void;
+    // toggleSettings: () => void;
     seek: (time: number) => void;
-    toPreviousSettings: () => void;
+    // toPreviousSettings: () => void;
     toggleFullScreen: VoidFunction;
     handleCanPlay: (duration: number) => void;
-    toNextSettings: (view: SettingView) => void;
-    setFullScreen: (e: Event | boolean) => void;
+    // toNextSettings: (view: SettingView) => void;
 
     setState: (state: State) => void;
+    setFullScreen: (e: Event | boolean) => void;
     setCurrentTime: (currentTime: number) => void;
     setHlsInstance: (instance: Hls | null) => void;
     setPlaybackRate: (rate: number | PlaybackRate) => void;
     setControlsVisible: (controlsVisible: boolean) => void;
     setVideoElement: (element: HTMLVideoElement | null) => void;
     setContainerElement: (element: HTMLDivElement | null) => void;
+    setSettingsVisible: (settingsVisible: SettingView[] | null) => void;
     setManifest: (e: Events.MANIFEST_PARSED, manifest: ManifestParsedData) => void;
     setCurrentLevel: (event: number | Events.LEVEL_SWITCHED, level?: LevelSwitchedData) => void;
     setSubtitleTrack: (event: number | Events.SUBTITLE_TRACK_SWITCH, level?: SubtitleTrackSwitchData) => void;
@@ -327,25 +328,26 @@ export const useVideoPlayer = create<VideoPlayerStore>((set) => ({
         });
     },
     setControlsVisible: (controlsVisible) => set({ controlsVisible }),
-    closeSettings: () => set({ settingsVisible: null }),
-    toggleSettings: () =>
-        set((state) => {
-            return { settingsVisible: state.settingsVisible ? null : [settings.ROOT] };
-        }),
-    toPreviousSettings: () =>
-        set((state) => {
-            if (Array.isArray(state.settingsVisible) && state.settingsVisible.length > 1) {
-                return { settingsVisible: state.settingsVisible.slice(0, -1) };
-            }
+    setSettingsVisible: (settingsVisible) => set({ settingsVisible }),
+    // closeSettings: () => set({ settingsVisible: null }),
+    // toggleSettings: () =>
+    //     set((state) => {
+    //         return { settingsVisible: state.settingsVisible ? null : [settings.ROOT] };
+    //     }),
+    // toPreviousSettings: () =>
+    //     set((state) => {
+    //         if (Array.isArray(state.settingsVisible) && state.settingsVisible.length > 1) {
+    //             return { settingsVisible: state.settingsVisible.slice(0, -1) };
+    //         }
 
-            return state;
-        }),
-    toNextSettings: (view: SettingView) =>
-        set((state) => {
-            if (Array.isArray(state.settingsVisible)) {
-                return { settingsVisible: [...state.settingsVisible, view] };
-            }
+    //         return state;
+    //     }),
+    // toNextSettings: (view: SettingView) =>
+    //     set((state) => {
+    //         if (Array.isArray(state.settingsVisible)) {
+    //             return { settingsVisible: [...state.settingsVisible, view] };
+    //         }
 
-            return state;
-        }),
+    //         return state;
+    //     }),
 }));

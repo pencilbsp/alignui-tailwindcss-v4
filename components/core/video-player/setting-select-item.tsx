@@ -4,22 +4,27 @@ import { cn } from "@/utils/cn";
 import { PolymorphicComponentProps } from "@/utils/polymorphic";
 
 type Props = {
-    label: string;
-    isActive: boolean;
+    isActive?: boolean;
 };
 
 const SettingSelectItem = <T extends React.ElementType>({
     as,
-    label,
     isActive,
+    children,
     className,
     ...rest
 }: PolymorphicComponentProps<T, Props>) => {
     const Component = as || "li";
 
     return (
-        <Component className={cn("flex cursor-pointer items-center justify-between gap-2", className)} {...rest}>
-            <span>{label}</span>
+        <Component
+            className={cn(
+                "flex cursor-pointer items-center justify-between gap-3 rounded-md px-2 py-1.5 transition-colors hover:bg-neutral-700",
+                className,
+            )}
+            {...rest}
+        >
+            {children}
             {isActive && <RiCheckLine className="size-4 lg:size-5" />}
         </Component>
     );

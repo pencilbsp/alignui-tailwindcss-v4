@@ -6,19 +6,19 @@ import { HTMLAttributes, useEffect, useRef } from "react";
 import { cn } from "@/utils/cn";
 import { useVideoPlayer, State } from "./store";
 
-type Subtitle = {
-    src: string;
-    lang: string;
-    name: string;
-    default?: boolean;
-};
+// type Subtitle = {
+//     src: string;
+//     lang: string;
+//     name: string;
+//     default?: boolean;
+// };
 
 type Props = HTMLAttributes<HTMLDivElement> & {
     src: string;
-    subtitles?: Subtitle[];
+    // subtitles?: Subtitle[];
 };
 
-const VideoPlayerProvider = ({ children, className, src, subtitles, ...rest }: Props) => {
+const VideoPlayerProvider = ({ children, className, src, ...rest }: Props) => {
     const videoRef = useRef<HTMLVideoElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
 
@@ -90,6 +90,9 @@ const VideoPlayerProvider = ({ children, className, src, subtitles, ...rest }: P
                     case "webkitbeginfullscreen":
                         setFullScreen(true);
                         break;
+                    case "error":
+                        console.log(event);
+                        break;
                     default:
                         break;
                 }
@@ -106,6 +109,9 @@ const VideoPlayerProvider = ({ children, className, src, subtitles, ...rest }: P
                 hlsInstance.on(Hls.Events.MANIFEST_PARSED, setManifest);
                 hlsInstance.on(Hls.Events.LEVEL_SWITCHED, setCurrentLevel);
                 hlsInstance.on(Hls.Events.SUBTITLE_TRACK_SWITCH, setSubtitleTrack);
+                hlsInstance.on(Hls.Events.ERROR, (name, data) => {
+                    console.log(name, data);
+                });
 
                 hlsInstance.loadSource(src);
                 hlsInstance.attachMedia(video);

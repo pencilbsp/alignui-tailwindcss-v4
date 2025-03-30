@@ -15,19 +15,18 @@ const SettingLevelSelect = memo(({ as, className, ...rest }: PolymorphicComponen
     if (!manifest || !currentLevel) return null;
 
     return (
-        <Component className={cn("flex min-w-36 flex-col gap-2", className)} {...rest}>
-            <SettingSelectItem isActive={currentLevel.auto} onClick={() => setCurrentLevel(-1)} label="Tự động" />
+        <Component className={cn("flex min-w-36 flex-col gap-1", className)} {...rest}>
+            <SettingSelectItem isActive={currentLevel.auto} onClick={() => setCurrentLevel(-1)}>
+                Tự động
+            </SettingSelectItem>
 
             {manifest.levels.map((level, index) => {
                 const isActive = currentLevel.auto ? false : currentLevel.id === index;
 
                 return (
-                    <SettingSelectItem
-                        key={level.label}
-                        label={level.label}
-                        isActive={isActive}
-                        onClick={() => setCurrentLevel(index)}
-                    />
+                    <SettingSelectItem key={level.label} isActive={isActive} onClick={() => setCurrentLevel(index)}>
+                        <span>{level.label}</span>
+                    </SettingSelectItem>
                 );
             })}
         </Component>

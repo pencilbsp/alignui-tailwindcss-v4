@@ -1,14 +1,6 @@
 "use client";
 
 import { memo, useEffect, useMemo, useRef } from "react";
-// import {
-//     PlayIcon,
-//     PauseIcon,
-//     SpeakerXMarkIcon,
-//     SpeakerWaveIcon,
-//     ArrowsPointingInIcon,
-//     ArrowsPointingOutIcon,
-// } from "@heroicons/react/24/outline";
 
 import {
     RiPauseLine,
@@ -117,7 +109,7 @@ const VideoPlayerControls = memo(() => {
         <div
             ref={controlsRef}
             className={cn(
-                "from-static-black/40 absolute bottom-0 left-0 flex w-full flex-col gap-2 bg-gradient-to-t to-transparent px-4 py-3 transition-all lg:gap-3",
+                "from-static-black/40 absolute bottom-0 left-0 flex w-full flex-col gap-3 bg-gradient-to-t to-transparent px-4 py-3 transition-all",
                 !controlsVisible && "invisible opacity-0",
             )}
         >

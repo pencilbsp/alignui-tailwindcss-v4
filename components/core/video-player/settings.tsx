@@ -1,25 +1,30 @@
-import { AnimatePresence } from "motion/react";
-import { ElementType, HTMLAttributes, memo, useCallback, useEffect, useMemo, useRef } from "react";
+import { AnimatePresence, motion } from "motion/react";
+import { ElementType, memo, useMemo, useRef } from "react";
 import {
     RiTimerLine,
     RiSettings2Line,
     RiEqualizer3Line,
+    RiArrowLeftSLine,
     RemixiconComponentType,
     RiClosedCaptioningLine,
+    RiArrowLeftLine,
 } from "@remixicon/react";
 
+import { cn } from "@/utils/cn";
 import ControlButton from "./control-button";
+import * as Divider from "@/components/core/divider";
 import useClickOutside from "@/hooks/use-click-outside";
 import { PolymorphicComponentProps } from "@/utils/polymorphic";
 import { useVideoPlayer, type SettingView, settings, SettingsName } from "./store";
-import { cn } from "@/utils/cn";
+import SettingLevelSelect from "./setting-level-select";
+import SettingSubtitleSelect from "./setting-subtitle-select";
+import SettingPlaybackRateSelect from "./setting-playback-rate-select";
+import SettingSelectItem from "./setting-select-item";
 
-// enum MotionAttribute {
-//     TO_END = "to-end",
-//     FROM_END = "from-end",
-//     TO_START = "to-start",
-//     FROM_START = "from-start",
-// }
+enum MotionAttribute {
+    toLeft = "toLeft",
+    toRight = "toRight",
+}
 
 type Props = {};
 
@@ -30,13 +35,43 @@ function VideoPlayerSettings<T extends ElementType>({
     ...rest
 }: PolymorphicComponentProps<T, Props>) {
     const rootRef = useRef<HTMLDivElement | null>(null);
+    const previousSettings = useRef<SettingView[] | null>(null);
 
-    const closeSettings = useVideoPlayer((state) => state.closeSettings);
-    const toggleSettings = useVideoPlayer((state) => state.toggleSettings);
     const settingsVisible = useVideoPlayer((state) => state.settingsVisible);
+    const setSettingsVisible = useVideoPlayer((state) => state.setSettingsVisible);
 
     const Component = as || "div";
-    const isOpen = Array.isArray(settingsVisible) && settingsVisible.length > 0;
+    const view = useMemo(() => {
+        if (Array.isArray(settingsVisible) && settingsVisible.length > 0) {
+            const current = settingsVisible.at(-1)!;
+            const previous = settingsVisible.at(-2);
+            return { current, previous };
+        }
+    }, [settingsVisible]);
+
+    const closeSettings = () => {
+        previousSettings.current = settingsVisible;
+        setSettingsVisible(null);
+    };
+
+    const toggleSettings = () => {
+        previousSettings.current = settingsVisible;
+        setSettingsVisible(view ? null : [settings.ROOT]);
+    };
+
+    const toNextSettings = (view: SettingView) => {
+        if (Array.isArray(settingsVisible)) {
+            previousSettings.current = settingsVisible;
+            setSettingsVisible([...settingsVisible, view]);
+        }
+    };
+
+    const toPreviousSettings = () => {
+        if (Array.isArray(settingsVisible)) {
+            previousSettings.current = settingsVisible;
+            setSettingsVisible(settingsVisible.slice(0, -1));
+        }
+    };
 
     useClickOutside(rootRef, closeSettings);
 
@@ -45,21 +80,30 @@ function VideoPlayerSettings<T extends ElementType>({
             <ControlButton
                 icon={RiSettings2Line}
                 onClick={toggleSettings}
-                aria-label={isOpen ? "Close settings" : "Open settings"}
+                aria-label={view ? "Close settings" : "Open settings"}
             />
 
             <AnimatePresence>
-                {isOpen ? (
-                    <div className="bg-static-black/80 shadow-regular-xs absolute right-4 bottom-full flex flex-col rounded-lg p-4 ring ring-neutral-200/20 ring-inset">
-                        <SettingsRoot />
-                    </div>
+                {view ? (
+                    <motion.div
+                        exit={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        initial={{ opacity: 0, y: 10 }}
+                        className="bg-static-black/80 shadow-regular-xs absolute right-4 bottom-full flex flex-col overflow-hidden rounded-xl p-2 ring ring-neutral-200/20 ring-inset"
+                    >
+                        {view.current.id === SettingsName.ROOT ? (
+                            <MainSettings toNextSettings={toNextSettings} />
+                        ) : (
+                            <SubSettings view={view} toPreviousSettings={toPreviousSettings} />
+                        )}
+                    </motion.div>
                 ) : null}
             </AnimatePresence>
         </Component>
     );
 }
 
-const SettingsRootItem = memo(
+const SettingsItem = memo(
     ({
         view,
         value,
@@ -72,7 +116,7 @@ const SettingsRootItem = memo(
         onViewChange: (view: SettingView) => void;
     }) => {
         return (
-            <li className="flex cursor-pointer justify-between gap-4" onClick={() => onViewChange(view)}>
+            <SettingSelectItem onClick={() => onViewChange(view)}>
                 <div className="flex items-center">
                     {Icon && <Icon className="size-5 lg:size-6" />}
                     <span className="ml-2">{view.title}</span>
@@ -80,19 +124,24 @@ const SettingsRootItem = memo(
                 <div className="text-subheading-sm lg:text-subheading-md text-text-soft-400 flex items-center font-light">
                     {value}
                 </div>
-            </li>
+            </SettingSelectItem>
         );
     },
 );
 
-SettingsRootItem.displayName = "SettingsRootItem";
+SettingsItem.displayName = "SettingsItem";
 
-const SettingsRoot = memo(() => {
+type MainSettingsProps = {
+    toNextSettings: (view: SettingView) => void;
+};
+
+const MainSettings = memo(({ toNextSettings }: MainSettingsProps) => {
+    // console.log("motionAttribute", motionAttribute);
+
     const manifest = useVideoPlayer((state) => state.manifest);
     const currentLevel = useVideoPlayer((state) => state.currentLevel);
     const playbackRate = useVideoPlayer((state) => state.playbackRate);
     const subtitleTrack = useVideoPlayer((state) => state.subtitleTrack);
-    const toNextSettings = useVideoPlayer((state) => state.toNextSettings);
 
     const level = useMemo(
         () => (manifest && currentLevel ? manifest.levels[currentLevel.id] : null),
@@ -105,9 +154,9 @@ const SettingsRoot = memo(() => {
     );
 
     return (
-        <ul className="flex flex-col gap-4 lg:gap-4">
+        <ul className="flex flex-col gap-1">
             {currentLevel && (
-                <SettingsRootItem
+                <SettingsItem
                     view={settings.LEVEL}
                     icon={RiEqualizer3Line}
                     onViewChange={toNextSettings}
@@ -120,14 +169,14 @@ const SettingsRoot = memo(() => {
                 />
             )}
             {subtitleTrack && (
-                <SettingsRootItem
+                <SettingsItem
                     view={settings.SUBTITLE}
                     icon={RiClosedCaptioningLine}
                     onViewChange={toNextSettings}
                     value={subtitle ? subtitle.name : "Tắt"}
                 />
             )}
-            <SettingsRootItem
+            <SettingsItem
                 icon={RiTimerLine}
                 view={settings.PLAYBACK_RATE}
                 onViewChange={toNextSettings}
@@ -137,91 +186,32 @@ const SettingsRoot = memo(() => {
     );
 });
 
-SettingsRoot.displayName = "SettingsRoot";
+MainSettings.displayName = "MainSettings";
 
-// const SettingsRoot = memo(
-//     ({
-//         views,
-//         prevViews,
-//     }: {
-//         views: { current: SettingView; previous: SettingView | null };
-//         prevViews: { current: SettingView | null; previous: SettingView | null };
-//     }) => {
-//         const [_motion, setMotion] = useState(true);
+type SubSettingsProps = {
+    toPreviousSettings: VoidFunction;
+    view: { current: SettingView; previous?: SettingView };
+};
 
-//         const divRef = useRef<HTMLDivElement | null>(null);
-//         const motionTimeoutRef = useRef<number | null>(null);
+const SubSettings = memo(({ view, toPreviousSettings }: SubSettingsProps) => {
+    return (
+        <div className="flex flex-col gap-1">
+            {view.previous && (
+                <button className="flex cursor-pointer items-center px-2 py-1" onClick={toPreviousSettings}>
+                    <RiArrowLeftLine className="mr-1.5 size-4 lg:size-5" />
+                    <span>{view.previous.title}</span>
+                </button>
+            )}
 
-//         const setSettingsVisible = useVideoPlayer((state) => state.setSettingsVisible);
+            <Divider.Root variant="line-spacing" />
 
-//         const handleBackView = useCallback(
-//             (view: SettingView) => {
-//                 if (motionTimeoutRef.current) {
-//                     clearTimeout(motionTimeoutRef.current);
-//                 }
+            {view.current.id === SettingsName.LEVEL && <SettingLevelSelect />}
+            {view.current.id === SettingsName.SUBTITLE && <SettingSubtitleSelect />}
+            {view.current.id === SettingsName.PLAYBACK_RATE && <SettingPlaybackRateSelect />}
+        </div>
+    );
+});
 
-//                 if (!divRef.current) return;
-
-//                 divRef.current.dataset.motion = MotionAttribute.TO_END;
-
-//                 motionTimeoutRef.current = window.setTimeout(() => {
-//                     setSettingsVisible([view]);
-//                 }, 200);
-//             },
-//             [setSettingsVisible],
-//         );
-
-//         useEffect(() => {
-//             if (divRef.current && views.current && views.current.id !== SettingsName.ROOT) {
-//                 divRef.current.dataset.motion = MotionAttribute.FROM_END;
-//                 setMotion(true);
-//             }
-
-//             if (motionTimeoutRef.current) {
-//                 // setMotion(true);
-
-//                 clearTimeout(motionTimeoutRef.current);
-//             }
-//         }, [views]);
-
-//         return (
-//             <motion.div
-//                 key="settings"
-//                 exit={{ y: -10, opacity: 0 }}
-//                 animate={{ y: 0, opacity: 1 }}
-//                 initial={{ y: 10, opacity: 0 }}
-//                 transition={{ duration: 0.2 }}
-//                 className="bg-static-black/80 shadow-regular-xs absolute right-4 bottom-full overflow-hidden rounded-xl p-4 ring-1 ring-neutral-200/20 ring-inset"
-//             >
-//                 {views.current.id === SettingsName.ROOT && <SettingList />}
-
-//                 {views.previous && (
-//                     <div
-//                         ref={divRef}
-//                         className="data-[motion=from-end]:animate-enter-from-right data-[motion=from-start]:animate-enter-from-left data-[motion=to-end]:animate-exit-to-right data-[motion=to-start]:animate-exit-to-left flex flex-col gap-2 lg:gap-3"
-//                     >
-//                         <button
-//                             aria-label={`Quay lại ${views.previous.title}`}
-//                             className="flex cursor-pointer items-center gap-2"
-//                             onClick={() => handleBackView(views.previous!)}
-//                         >
-//                             <RiArrowLeftSLine className="size-5 lg:size-6" />
-//                             <span>{views.previous.title}</span>
-//                         </button>
-
-//                         {views.current.id === SettingsName.LEVEL && <QualitySelector />}
-//                     </div>
-//                 )}
-
-//                 {/* {views.current.id === SettingsName.SUBTITLE && <SubtitleSelector />}
-//             {views.current.id === SettingsName.PLAYBACK_RATE && <PlaybackRateSelector />} */}
-//             </motion.div>
-//         );
-//     },
-// );
-
-// SettingsRoot.displayName = "SettingsRoot";
-
-// export default VideoPlayerSettings;
+SubSettings.displayName = "SubSettings";
 
 export default memo(VideoPlayerSettings);

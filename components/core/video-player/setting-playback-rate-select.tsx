@@ -13,17 +13,14 @@ const SettingPlaybackRateSelect = memo(({ as, className, ...rest }: PolymorphicC
     const Component = as || "ul";
 
     return (
-        <Component className={cn("flex min-w-36 flex-col gap-2", className)} {...rest}>
+        <Component className={cn("flex min-w-36 flex-col gap-1", className)} {...rest}>
             {defaultRates.map((rate) => {
                 const label = rate.label || rate.value.toString();
                 const isActive = playbackRate.value === rate.value;
                 return (
-                    <SettingSelectItem
-                        label={label}
-                        key={rate.value}
-                        isActive={isActive}
-                        onClick={() => setPlaybackRate(rate)}
-                    />
+                    <SettingSelectItem key={rate.value} isActive={isActive} onClick={() => setPlaybackRate(rate)}>
+                        <span>{label}</span>
+                    </SettingSelectItem>
                 );
             })}
         </Component>

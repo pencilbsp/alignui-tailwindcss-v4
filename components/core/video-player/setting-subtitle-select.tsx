@@ -15,8 +15,10 @@ const SettingSubtitleSelect = memo(({ as, className, ...rest }: PolymorphicCompo
     if (!manifest || !manifest.subtitleTracks.length) return null;
 
     return (
-        <Component className={cn("flex min-w-36 flex-col gap-2", className)} {...rest}>
-            <SettingSelectItem isActive={!subtitleTrack} onClick={() => setSubtitleTrack(-1)} label="Tắt" />
+        <Component className={cn("flex min-w-36 flex-col gap-1", className)} {...rest}>
+            <SettingSelectItem isActive={!subtitleTrack} onClick={() => setSubtitleTrack(-1)}>
+                Tắt
+            </SettingSelectItem>
 
             {manifest.subtitleTracks.map((subtitle, index) => {
                 const isActive = index === subtitleTrack?.id;
@@ -24,10 +26,11 @@ const SettingSubtitleSelect = memo(({ as, className, ...rest }: PolymorphicCompo
                 return (
                     <SettingSelectItem
                         isActive={isActive}
-                        label={subtitle.name}
                         key={subtitle.name + index}
                         onClick={() => setSubtitleTrack(index)}
-                    />
+                    >
+                        <span>{subtitle.name}</span>
+                    </SettingSelectItem>
                 );
             })}
         </Component>

@@ -104,7 +104,7 @@ const VideoPlayerProgressBar = ({ className, ...rest }: HTMLAttributes<HTMLDivEl
                 style={{ left: thumbPosition?.x }}
                 // animate={thumbPosition ? { y: 0, opacity: 1, transition: { duration: 0.2 } } : { y: 10, opacity: 0 }}
                 className={cn(
-                    "bg-static-black/80 shadow-regular-xs absolute bottom-full -translate-y-3 rounded-lg px-3 py-1 ring ring-neutral-200/20 ring-inset",
+                    "bg-static-black/80 shadow-regular-xs absolute bottom-full -translate-y-3 rounded-xl px-3 py-1 ring ring-neutral-200/20 ring-inset",
                     !thumbPosition && "invisible",
                 )}
             >
