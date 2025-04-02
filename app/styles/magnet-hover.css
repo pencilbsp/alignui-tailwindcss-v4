@@ -1,0 +1,97 @@
+@supports (aspect-ratio: 1) {
+    body {
+        --framer-aspect-ratio-supported: auto;
+    }
+}
+.magnet-root.magnet-wrapper {
+    align-content: center;
+    align-items: center;
+    cursor: pointer;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    gap: 10px;
+    height: min-content;
+    justify-content: center;
+    overflow: visible;
+    padding: 0px;
+    position: relative;
+    width: min-content;
+}
+.magnet-root .magnet-content {
+    align-content: center;
+    align-items: center;
+    display: flex;
+    flex: none;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    gap: 10px;
+    height: 56px;
+    justify-content: center;
+    overflow: visible;
+    padding: 10px 12px 10px 12px;
+    position: relative;
+    width: min-content;
+}
+.magnet-root .magnet-style {
+    flex: none;
+    height: auto;
+    left: 0px;
+    position: absolute;
+    top: 0px;
+    width: auto;
+    z-index: 1;
+}
+.magnet-root .magnet-image {
+    aspect-ratio: 1 / 1;
+    flex: none;
+    height: var(--framer-aspect-ratio-supported, 56px);
+    overflow: visible;
+    position: relative;
+    width: 56px;
+}
+@supports (background: -webkit-named-image(i)) and (not (font-palette: dark)) {
+    .magnet-root.magnet-wrapper,
+    .magnet-root .magnet-content {
+        gap: 0px;
+    }
+    .magnet-root.magnet-wrapper > *,
+    .magnet-root .magnet-content > * {
+        margin: 0px;
+        margin-left: calc(10px / 2);
+        margin-right: calc(10px / 2);
+    }
+    .magnet-root.magnet-wrapper > :first-child,
+    .magnet-root .magnet-content > :first-child {
+        margin-left: 0px;
+    }
+    .magnet-root.magnet-wrapper > :last-child,
+    .magnet-root .magnet-content > :last-child {
+        margin-right: 0px;
+    }
+}
+.magnet-root[data-state="opened"] .magnet-content {
+    padding: 10px 38px 10px 38px;
+}
+.magnet-root[data-state="opened"] .magnet-image {
+    left: -15px;
+    position: absolute;
+    top: -15px;
+    z-index: 1;
+}
+.magnet-root[data-border="true"]::after,
+.magnet-root [data-border="true"]::after {
+    content: "";
+    border-width: var(--border-top-width, 0) var(--border-right-width, 0) var(--border-bottom-width, 0)
+        var(--border-left-width, 0);
+    border-color: var(--border-color, none);
+    border-style: var(--border-style, none);
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    box-sizing: border-box;
+    left: 0;
+    top: 0;
+    border-radius: inherit;
+    pointer-events: none;
+}
